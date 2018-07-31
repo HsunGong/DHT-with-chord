@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"dht"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -23,12 +24,12 @@ var (
 	port   = dht.DefaultPort
 	host   = dht.DefaultHost
 
-	debug = *flag.Flag
+	debug bool
 )
 
 //may change the port, once init(), cant change again, so dont use _init()
 func _init() {
-	node = dht.NewNode(port)
+	node = dht.NewNode(port, debug)
 	server = dht.NewServer(node)
 }
 
@@ -53,9 +54,13 @@ func getline() ([]string, error) {
 }
 
 func main() {
+	flag.BoolVar(&debug, "debug", false, "start with debug function")
+	flag.Parse()
+
+	t := time.Now()
+	fmt.Printf("@CopyRight(c) 2018 Xun. All rights reserved\n--At %v DHT begins--\n", t.Round(time.Second).Format(layout))
+
 	for {
-		t := time.Now()
-		fmt.Printf("%v dht> ", t.Round(time.Second).Format(layout))
 		line, err := getline()
 		if err != nil {
 			fmt.Println("Command format error, get help from command help")
@@ -121,7 +126,7 @@ func Create(args ...string) error {
 
 	_init()
 	server.Listen()
-	fmt.Println("Node(created) listening at ", node.Addr())
+	fmt.Println("Node(created) listening at ", dht.Addr(node))
 	return nil
 }
 
@@ -354,7 +359,7 @@ func Test(args ...string) error {
 //if return "", cant do the function anymore, return errors till main()
 //if dial is panic, panic the whole program????????????
 func find(key string) string {
-	response, err := dht.RPCFindSuccessor(node.Addr(), dht.Hash(key))
+	response, err := dht.RPCFindSuccessor(dht.Addr(node), dht.Hash(key))
 	if err != nil {
 		fmt.Printf("find address: %v\n", err) //maybe panic??
 		return ""

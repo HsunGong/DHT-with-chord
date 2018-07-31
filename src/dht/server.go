@@ -2,7 +2,6 @@ package dht
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -53,7 +52,6 @@ type Server struct {
 
 	logfile *os.File
 	Logger  *log.Logger
-	debug   *flag.Flag
 }
 
 // type Nothing struct{}
@@ -76,6 +74,7 @@ func NewServer(n *Node) *Server {
 		logfile:   logf,
 		Logger:    log.New(logf, "Server ", log.Ltime),
 	}
+	p.Logger.Println("-------------------------------------------------------")
 	p.Logger.Println("Init a Server at ", time.Now())
 	return p
 }
@@ -138,6 +137,9 @@ func (s *Server) IsListening() bool {
 }
 
 func (s *Server) Debug() string {
+	if !s.node.debug {
+		return ""
+	}
 	return fmt.Sprintf(`
 ID: %v
 Listening: %v
@@ -146,5 +148,5 @@ Data: %v
 Successor: %v
 Predecessor: %v
 Fingers: %v
-`, s.node.Id, s.IsListening(), s.node.Addr(), s.node.Data, s.node.Successor, s.node.Predecessor, s.node.FingerTable[1:])
+`, s.node.Id, s.IsListening(), Addr(s.node), s.node.Data, s.node.Successor, s.node.Predecessor, s.node.FingerTable)
 }

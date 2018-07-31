@@ -1,12 +1,14 @@
 package dht
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"math/big"
 )
 
 const (
-	m      = 161 // 1-base indexing
+	m      = 160 // 0-base indexing
 	suSize = 3
 )
 
@@ -20,34 +22,38 @@ type Node struct {
 	Predecessor string
 
 	Data        map[string]string
-	FingerTable [m]string
+	FingerTable []string
 	Next        int
+
+	debug bool // if true, is debugging
 }
 
 type KVP struct {
 	K, V string //key, value
 }
 
-func NewNode(_port string) *Node {
+func NewNode(_port string, _debug bool) *Node {
 	_host := GetAddress()
 
 	return &Node{
-		Host: _host,
-		Port: _port,
-		Id:   Hash(_host + ":" + _port),
-		Data: make(map[string]string),
+		Host:        _host,
+		Port:        _port,
+		Id:          Hash(_host + ":" + _port),
+		Data:        make(map[string]string),
+		debug:       _debug,
+		FingerTable: make([]string, 0, m),
 	}
 }
 
-func (n *Node) Addr() string {
+func Addr(n *Node) string {
 	return n.Host + ":" + n.Port
 }
 
 //init predecessor and successor
 func (n *Node) create() {
-	n.Predecessor = n.Addr() // or "", can be stablized later
+	n.Predecessor = Addr(n) // or "", can be stablized later
 	for i, _ := range n.Successor {
-		n.Successor[i] = n.Addr()
+		n.Successor[i] = Addr(n)
 	}
 
 	//go----
@@ -57,7 +63,7 @@ func (n *Node) create() {
 func (n *Node) join(address string) error {
 	n.Predecessor = "" // have to be stablized later
 
-	n.Successor[0] = n.Addr()
+	n.Successor[0] = Addr(n)
 	for i := 1; i <= suSize; i++ {
 		addr, err := RPCFindSuccessor(address, Hash(n.Successor[i-1]))
 		if err != nil {
@@ -65,6 +71,9 @@ func (n *Node) join(address string) error {
 			return err
 		}
 		n.Successor[i] = addr
+		if n.debug {
+			fmt.Printf("successor[%d] are: %v\n", i, n.Successor[i])
+		}
 	}
 
 	return nil
@@ -77,46 +86,65 @@ func (n *Node) Ping(request int, response *int) error {
 	return nil
 }
 
+// search the local table for the highest predecessor of id
+// n.closest_preceding_node(id)
+//if empty, return "", left to let
+// find finger[i] ∈ (n, id)
+func (n *Node) findFingerTable(id *big.Int) string {
+	if len(n.FingerTable) == 0 {
+		return ""
+	}
+
+	for i := len(n.FingerTable); i >= 0; i-- {
+		if n.debug {
+			fmt.Println(ExclusiveBetween(Hash(n.FingerTable[i]), n.Id, id))
+		}
+
+		if !ExclusiveBetween(Hash(n.FingerTable[i]), n.Id, id) {
+			// the return should be i - 1
+			// what if i == 0?, impossible for successor have to be included
+			if i == 0 {
+				log.Panicln("FingerTable doesnt fit with successor")
+			}
+			return n.FingerTable[i-1]
+		}
+	}
+
+	// all of them is included by n.Id and id, so as said should return n
+	//however incase loop forever, return "", let the function to handle
+	return ""
+
+}
+
 //If the id I'm looking for falls between me and mySuccessor
 //Then the data for this id will be found on mySuccessor
 // ------------>>>will do finger table later
 // ask node n to find the successor of id
 // or a better node to continue the search with
 func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
-	n.Successor[0] = n.Addr()
+	n.Successor[0] = Addr(n)
 	for i := 0; i < suSize; i++ {
-		fmt.Println("successor are: ", n.Successor[i], n.Successor[i+1])
+		if n.debug {
+			fmt.Printf("successor[%d] are: %v %v\n", i, n.Successor[i], n.Successor[i+1])
+		}
 		if InclusiveBetween(id, Hash(n.Successor[i]), Hash(n.Successor[i])) { //id ∈ (n, successor]
 			*successor = n.Successor[i+1]
-			fmt.Println("successor find: ", n.Successor[i+1])
+			if n.debug {
+				fmt.Println("successor find: ", n.Successor[i+1])
+			}
 			return nil
 		}
 	}
 
-	var err error
-	*successor, err = RPCFindSuccessor(n.Successor[3], id)
-	return err
-	// return false, closest_preceding_node(id);
+	//wont loop if successor is exists
+	if nextAddr := n.findFingerTable(id); nextAddr == "" {
+		return errors.New("findFingerTable Err")
+	} else {
+		var err error
+		*successor, err = RPCFindSuccessor(nextAddr, id)
+		return err
+	}
 
-	// search the local table for the highest predecessor of id
-	// n.closest_preceding_node(id)
-	// // skip this loop if you do not have finger tables implemented yet
-	// for i = m downto 1
-	//     if (finger[i] ∈ (n,id])
-	//         return finger[i];
-	// return successor;
-
-	// find the successor of id
-	// find(id, start)
-	//     found, nextNode = false, start;
-	//     i = 0
-	//     while not found and i < maxSteps
-	//         found, nextNode = nextNode.find_successor(id);
-	//         i += 1
-	//     if found
-	//         return nextNode;
-	//     else
-	//         report error;
 }
 
 // func (n *Node) Notify(addr string, response *bool) error           { return nil }
