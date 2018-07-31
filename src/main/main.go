@@ -2,15 +2,35 @@ package main
 
 import (
 	"bufio"
+	"dht"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
-	"node"
+	"time"
 )
 
-const MaxPara = 3
+const (
+	// layout  = "Jul 31, 2018 01:40:35 (CST)" // time format
+	layout  = "2006-01-02 15:04:05.999999999 (MST)"
+	MaxPara = 3
+)
+
+//operator domains
+var (
+	node   *dht.Node
+	server *dht.Server
+	port   = dht.DefaultPort
+	host   = dht.DefaultHost
+
+	debug = *flag.Flag
+)
+
+//may change the port, once init(), cant change again, so dont use _init()
+func _init() {
+	node = dht.NewNode(port)
+	server = dht.NewServer(node)
+}
 
 func getline() ([]string, error) {
 	//reader := bufio.NewReader(os.Stdin)
@@ -27,14 +47,15 @@ func getline() ([]string, error) {
 	//scanner.Split()
 	if scanner.Scan() {
 		buffer = scanner.Text()
-		fmt.Println("Order buffers ", buffer)
+		//fmt.Println("Order buffers ", buffer)
 	}
 	return strings.Split(strings.TrimSpace(buffer), " "), nil //delete all ' ' in buffer
 }
 
 func main() {
 	for {
-		log.Printf("dht> ")
+		t := time.Now()
+		fmt.Printf("%v dht> ", t.Round(time.Second).Format(layout))
 		line, err := getline()
 		if err != nil {
 			fmt.Println("Command format error, get help from command help")
@@ -47,43 +68,119 @@ func main() {
 		}
 
 		err = cmd[line[0]](line[1:]...)
-
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
 }
 
-func Port(args ...string) error    { return nil }
-func Create(args ...string) error  { return nil }
-func Del(args ...string) error     { return nil }
-func Ping(args ...string) error    { return nil }
-func Put(args ...string) error     { return nil }
-func Get(args ...string) error     { return nil }
-func Dump(args ...string) error    { return nil }
-func Dumpall(args ...string) error { return nil }
-func Join(args ...string) error    { return nil }
-
 //func(args...string) error is the cmd funcs return by error
 //can't define as const
 var cmd = map[string]func(args ...string) error{
-	"quit":    Quit,
-	"help":    Help,
-	"port":    Port,
-	"create":  Create,
-	"delete":  Del,
-	"ping":    Ping,
-	"put":     Put,
-	"get":     Get,
-	"dump":    Dump,
-	"dumpall": Dumpall,
-	"join":    Join,
+	"quit": Quit,
+	"exit": Quit,
+	"help": Help,
+
+	"port":   Port,
+	"create": Create,
+	"join":   Join,
+
+	"put":    Put,
+	"get":    Get,
+	"delete": Del,
+
+	"ping":     Ping,
+	"test":     Test,
+	"dump":     Dump,
+	"dumpall":  Dump,
+	"dumpaddr": Dump,
+}
+
+//port setting, before a server is init
+func Port(args ...string) error {
+	if node != nil {
+		return errors.New("port can't set again after calling create or join")
+	}
+
+	if len(args) > 1 {
+		return errors.New("Too many arguments")
+	} else if len(args) == 0 {
+		port = dht.DefaultPort
+	} else {
+		port = args[0]
+	}
+	fmt.Printf("Port set to %v\n", port)
+
+	return nil
+}
+
+func Create(args ...string) error {
+	if len(args) > 0 {
+		return errors.New("too many arguments")
+	}
+
+	_init()
+	server.Listen()
+	fmt.Println("Node(created) listening at ", node.Addr())
+	return nil
+}
+
+//begin to listen server.node.address+port;
+//node join at args[0](existing address)
+func Join(args ...string) error {
+	if len(args) > 1 {
+		return errors.New("too many arguments")
+	}
+
+	_init()
+	addres := dht.DefaultHost + ":" + dht.DefaultPort
+	if len(args) == 1 {
+		addres = args[0]
+	}
+	fmt.Println("It is ", addres)
+	if err := server.Join(addres); err != nil {
+		return err
+	}
+	fmt.Println("Joined at ", addres)
+
+	return nil
 }
 
 func Quit(args ...string) error {
-	os.Exit(0)
+	if len(args) > 1 {
+		return errors.New("too many arguments")
+	}
+	if server == nil {
+		fmt.Println("Pragram end")
+		os.Exit(1)
+	}
+
+	if err := server.Quit(); err != nil {
+		fmt.Printf("Server Quit: %v\n", err)
+	} else {
+		fmt.Println("Program end")
+	}
+	os.Exit(1)
 	return nil
 }
+
+func Dump(args ...string) error {
+	fmt.Println(server.Debug())
+	return nil
+}
+
+//Debug func----using dial
+//fake ping
+//test if args[0](address) is listening
+func Ping(args ...string) error {
+	if len(args) == 0 {
+		return errors.New("too few arguments")
+	} else if len(args) > 1 {
+		return errors.New("too many arguments")
+	}
+	return dht.RPCPing(args[0])
+}
+
 func Help(args ...string) error {
 	var err error
 	if len(args) > 1 {
@@ -229,4 +326,94 @@ walk around the ring, dumping all information about every peer in the ring in cl
 	}
 
 	return err
+}
+
+//can specially judge server and client.
+//switch server and client and some infos
+//order is like: "test server" or "test client msg"
+func Test(args ...string) error {
+	if len(args) == 0 {
+		return errors.New("few arguements")
+	}
+
+	if args[0] == "server" {
+		_init()
+		fmt.Println("server is doing things")
+		server.Listen()
+	} else if args[0] == "client" {
+		if len(args) != 2 {
+			return errors.New("need command like : test client/server msg[only one]")
+		}
+		fmt.Println("client is dong things")
+		dht.Testcli(host+":"+port, args[1])
+	}
+
+	return nil
+}
+
+//if return "", cant do the function anymore, return errors till main()
+//if dial is panic, panic the whole program????????????
+func find(key string) string {
+	response, err := dht.RPCFindSuccessor(node.Addr(), dht.Hash(key))
+	if err != nil {
+		fmt.Printf("find address: %v\n", err) //maybe panic??
+		return ""
+	}
+
+	return response
+}
+
+/// put key value
+func Put(args ...string) error {
+	if len(args) != 2 {
+		return errors.New("Arguments number error")
+	}
+	address := find(args[0]) // key's successor
+	if address == "" {
+		return errors.New("can't get address")
+	}
+
+	var response bool
+	if err := dht.Call(address, "Node.Put", dht.KVP{K: args[0], V: args[1]}, &response); err != nil {
+		return err
+	}
+
+	fmt.Printf("Put [%v] stored %v at %s is %t\n", address, args[1], args[0], response)
+	return nil
+}
+
+func Get(args ...string) error {
+	if len(args) != 1 {
+		return errors.New("Arguments number error")
+	}
+	address := find(args[0]) // key's successor
+	if address == "" {
+		return errors.New("can't get address")
+	}
+
+	var response string
+	if err := dht.Call(address, "Node.Get", args[0], &response); err != nil {
+		return err
+	}
+
+	fmt.Printf("Get [%v] stored %v at %s\n", address, response, args[0])
+	return nil
+}
+
+func Del(args ...string) error {
+	if len(args) != 1 {
+		return errors.New("Arguments number error")
+	}
+	address := find(args[0]) // key's successor
+	if address == "" {
+		return errors.New("can't get address")
+	}
+
+	var response bool
+	if err := dht.Call(address, "Node.Del", args[0], &response); err != nil {
+		return err
+	}
+
+	fmt.Printf("Del [%v] KVPair(%v) is %t\n", address, args[0], response)
+	return nil
 }

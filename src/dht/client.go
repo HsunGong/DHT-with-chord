@@ -1,18 +1,30 @@
 package dht
 
 import (
+	// "dht"
 	"errors"
+	"fmt"
 	"log"
 	"math/big"
 	"net/rpc"
 )
 
 const (
-	defaultHost = "localHost"
-	defaultPort = "3410"
+	DefaultHost = "localHost"
+	DefaultPort = "3410"
 )
 
-func call(address string, method string, request interface{}, response interface{}) error {
+//actually a struct is here:
+// client, method, request, response
+
+func Dial(address string) (*rpc.Client, error) {
+	if address == "" {
+		address = DefaultHost + ":" + DefaultPort
+	}
+	return rpc.DialHTTP("tcp", address)
+}
+
+func Call(address string, method string, request interface{}, response interface{}) error {
 	client, err := rpc.DialHTTP("tcp", address)
 	if err != nil {
 		log.Printf("dial failed: %v", err)
@@ -20,6 +32,7 @@ func call(address string, method string, request interface{}, response interface
 	}
 	defer client.Close()
 
+	//get call
 	err = client.Call(method, request, response)
 	if err != nil {
 		log.Printf("call error: %v", err)
@@ -29,52 +42,74 @@ func call(address string, method string, request interface{}, response interface
 	return nil
 }
 
-func RPCNotify(addr string, notice string) error {
-	//var junk Nothing
-	if addr == "" {
-		return errors.New("Notify: rpc address is empty")
-	}
-	response := false
+// func RPCNotify(addr string, notice string) error {
+// 	//var junk Nothing
+// 	if addr == "" {
+// 		return errors.New("Notify: rpc address is empty")
+// 	}
+// 	response := false
 
-	return call(addr, "Node.Notify", notice, &response)
-}
+// 	return Call(addr, "Node.Notify", notice, &response)
+// }
 
-func RPCGetPredecessor(addr string) (string, error) {
-	if addr == "" {
-		return "", errors.New("GetPredecessor: rpc address is empty")
-	}
+// func RPCGetPredecessor(addr string) (string, error) {
+// 	if addr == "" {
+// 		return "", errors.New("GetPredecessor: rpc address is empty")
+// 	}
 
-	response := ""
-	if err := call(addr, "Node.GetPredecessor", false, &response); err != nil {
-		return "", err
-	}
-	if response == "" {
-		return "", errors.New("GetPredecessor: rpc Empty predecessor")
-	}
+// 	response := ""
+// 	if err := Call(addr, "Node.GetPredecessor", false, &response); err != nil {
+// 		return "", err
+// 	}
+// 	if response == "" {
+// 		return "", errors.New("GetPredecessor: rpc Empty predecessor")
+// 	}
 
-	return response, nil
-}
+// 	return response, nil
+// }
 func RPCFindSuccessor(addr string, id *big.Int) (string, error) {
 	if addr == "" {
-		return "", errors.New("FindPredecessor: rpc address is empty")
+		return "", errors.New("RPCFindSuccessor: rpc address is empty")
 	}
 
 	response := ""
-	if err := call(addr, "Node.GetPredecessor", id, &response); err != nil {
+	if err := Call(addr, "Node.FindSuccessor", id, &response); err != nil {
 		return response, err
 	}
 
 	return response, nil
 }
-func RPCHealthCheck(addr string) (bool, error) {
-	if addr == "" {
-		return false, errors.New("HealthCheck: rpc address is empty")
+
+// func RPCHealthCheck(addr string) (bool, error) {
+// 	if addr == "" {
+// 		return false, errors.New("HealthCheck: rpc address is empty")
+// 	}
+
+// 	response := 0
+// 	if err := Call(addr, "Node.Ping", 101, &response); err != nil {
+// 		return false, err
+// 	}
+
+// 	return true, nil
+// }
+
+//actually RPCTest
+func Testcli(address string, testmsg string) error {
+	var size int
+	if err := Call(address, "Node.Test", testmsg, &size); err != nil {
+		log.Printf("Test rpc Error: %v", err)
+		return err
+	}
+	fmt.Printf("get msg num: %d\n", size)
+	return nil
+}
+
+func RPCPing(address string) error {
+	var response int
+	if err := Call(address, "Node.Ping", 3, &response); err != nil {
+		return err
 	}
 
-	response := 0
-	if err := call(addr, "Node.Ping", 101, &response); err != nil {
-		return false, err
-	}
-
-	return true, nil
+	fmt.Println("Got response: ", response)
+	return nil
 }

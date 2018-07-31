@@ -1,0 +1,35 @@
+Server09:26:04 Init a Server
+Server09:26:04 listen at  :3410
+Server09:42:26 Init a Server
+Server09:42:26 listen at  :1010
+Server09:48:12 Init a Server
+Server09:48:12 listen at  :3410
+Server09:48:51 Init a Server
+Server09:57:37 Init a Server
+Server09:57:37 listen error: listen tcp :3410: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+Server09:58:54 Init a Server
+Server09:58:54 listen at  :3411
+Server10:11:03 Init a Server
+Server10:11:03 listen at  :3411
+Server 16:45:12 Init a Server at  2018-07-31 16:45:12.0190074 +0800 CST m=+11.274260201
+Server 16:45:12 listen at  :3410
+Server 19:13:21 Init a Server at  2018-07-31 19:13:21.8636335 +0800 CST m=+4.188831201
+Server 19:13:21 listen at  :3410
+Server 19:15:02 Init a Server at  2018-07-31 19:15:02.3585372 +0800 CST m=+3.578517101
+Server 19:15:02 listen at  :3410
+Server 19:15:19 Init a Server at  2018-07-31 19:15:19.0438091 +0800 CST m=+3.488955201
+Server 19:15:19 listen at  :3410
+Server 19:15:43 Init a Server at  2018-07-31 19:15:43.1943278 +0800 CST m=+2.692411401
+Server 19:15:43 listen at  :3410
+Server 19:17:58 Init a Server at  2018-07-31 19:17:58.3676986 +0800 CST m=+5.553993601
+Server 19:17:58 listen at  :3411
+Server 19:18:49 Init a Server at  2018-07-31 19:18:49.1655881 +0800 CST m=+6.369256801
+Server 19:18:49 listen at  :3411
+Server 19:21:17 Init a Server at  2018-07-31 19:21:17.7979543 +0800 CST m=+5.135772001
+Server 19:21:17 listen at  :3410
+Server 19:24:55 Init a Server at  2018-07-31 19:24:55.5802888 +0800 CST m=+3.778424301
+Server 19:24:55 listen at  :3410
+Server 19:26:45 Init a Server at  2018-07-31 19:26:45.7929512 +0800 CST m=+1.671362401
+Server 19:26:45 listen at  :3410
+Server 19:32:47 Init a Server at  2018-07-31 19:32:47.8122205 +0800 CST m=+3.882880401
+Server 19:32:47 listen at  :3410
