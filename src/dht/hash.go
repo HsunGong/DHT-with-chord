@@ -13,6 +13,10 @@ const keySize = 160
 //2^160
 var hashMod = new(big.Int).Exp(big.NewInt(2), big.NewInt(keySize), nil)
 
+func pow_2(x int) *big.Int {
+	return new(big.Int).Exp(big.NewInt(2), big.NewInt(int64(x)), nil)
+}
+
 func Hash(in string) *big.Int {
 	hash1 := sha1.New()
 	io.WriteString(hash1, in)
@@ -27,12 +31,13 @@ func Hash(in string) *big.Int {
 }
 
 // also func jump
-//initalize start's fingertable, into No.fingerNum(2^(m-1))
-func FingerEntry(start string, fingerentry int) *big.Int {
-	exponent := big.NewInt(int64(fingerentry) - 1)
+// 0-base
+//initalize start's fingertable, into No.fingerNum(2^(m))
+func fingerEntry(startId *big.Int, fingerentryNum int) *big.Int {
+	exponent := big.NewInt(int64(fingerentryNum))
 	distance := new(big.Int).Exp(big.NewInt(2), exponent, nil)
 
-	fingerid := Hash(start)
+	fingerid := startId
 	fingerid.Add(fingerid, distance)
 	fingerid.Mod(fingerid, hashMod)
 	return fingerid

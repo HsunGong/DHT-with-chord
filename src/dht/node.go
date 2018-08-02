@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"time"
 )
 
 const (
-	m      = 160 // 0-base indexing
-	suSize = 3
+	m           = 160 // 0-base indexing
+	suSize      = 3
+	refreshTime = 0.5 * time.Second
 )
 
 // Node of a virtual machine-- each resource is in Data
@@ -23,7 +25,7 @@ type Node struct {
 
 	Data        map[string]string
 	FingerTable []string
-	Next        int
+	next        int
 
 	debug bool // if true, is debugging
 }
@@ -42,6 +44,7 @@ func NewNode(_port string, _debug bool) *Node {
 		Data:        make(map[string]string),
 		debug:       _debug,
 		FingerTable: make([]string, 0, m),
+		next:        0,
 	}
 }
 
@@ -57,6 +60,9 @@ func (n *Node) create() {
 	}
 
 	//go----
+	go n.stabalizePeriod()
+	go n.checkPredecessorPeriod()
+	go n.fixFingerTablePeriod()
 }
 
 //init node's info
@@ -121,23 +127,25 @@ func (n *Node) findFingerTable(id *big.Int) string {
 // ------------>>>will do finger table later
 // ask node n to find the successor of id
 // or a better node to continue the search with
+//!!!!!maybe can repete with some node(in fixfinger)
 func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
 	n.Successor[0] = Addr(n)
-	for i := 0; i < suSize; i++ {
+	for i := 1; i <= suSize; i++ {
 		if n.debug {
-			fmt.Printf("successor[%d] are: %v %v\n", i, n.Successor[i], n.Successor[i+1])
+			fmt.Printf("successor[%d] are: (%v) %v\n", i, n.Successor[i-1], n.Successor[i])
 		}
-		if InclusiveBetween(id, Hash(n.Successor[i]), Hash(n.Successor[i])) { //id ∈ (n, successor]
-			*successor = n.Successor[i+1]
+		if InclusiveBetween(id, Hash(n.Successor[i-1]), Hash(n.Successor[i])) { //id ∈ (n, successor]
+			*successor = n.Successor[i]
 			if n.debug {
-				fmt.Println("successor find: ", n.Successor[i+1])
+				fmt.Println("successor find: ", n.Successor[i])
 			}
 			return nil
 		}
 	}
 
 	//wont loop if successor is exists
-	if nextAddr := n.findFingerTable(id); nextAddr == "" {
+	nextAddr := n.findFingerTable(id)
+	if nextAddr == "" {
 		return errors.New("findFingerTable Err")
 	} else {
 		var err error
@@ -147,8 +155,146 @@ func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
 
 }
 
-// func (n *Node) Notify(addr string, response *bool) error           { return nil }
-// func (n *Node) GetPredecessor(none bool, addr *string) error       { return nil }
+func (n *Node) GetPredecessor(none bool, addr *string) error {
+	*addr = n.Predecessor
+	if n.Predecessor == "" {
+		return errors.New("Predecessor is Empty")
+	} else {
+		return nil
+	}
+}
+
+//address is the node that should be awared
+//address maybe the n's Predecessor
+func (n *Node) Notify(address string, response *bool) error {
+	if n.Predecessor == "" || ExclusiveBetween(Hash(address), Hash(n.Predecessor), n.Id) {
+		if n.debug {
+			fmt.Printf("Notify Success: %s\n", address)
+		}
+		n.Predecessor = address
+		*response = true
+	}
+	*response = false
+	return nil
+}
+
+//check whther predecessor is failed
+func (n *Node) checkPredecessor() error {
+	if err := RPCHealthCheck(n.Predecessor); err != nil {
+		n.Predecessor = ""
+	}
+
+	return nil
+}
+
+//call periodly, refresh.
+//n.next is the index of finger to fix
+func (n *Node) fixFingerTable() error {
+	n.next += 1
+	if n.debug {
+		fmt.Printf("n.next = %d\n", n.next)
+	}
+	if n.next >= m {
+		n.next = 0
+	}
+
+	var response string
+	id := fingerEntry(n.Id, n.next)
+	if err := n.FindSuccessor(id, &response); err != nil || response == "" {
+		fmt.Println("fixFingertable err")
+		return err
+	}
+
+	for InclusiveBetween(id, n.Id, Hash(response)) {
+		n.FingerTable[n.next] = response
+		if n.debug {
+			fmt.Printf("fixed [%d] = %s\n", n.next, response)
+		}
+		n.next += 1
+		if n.next >= m { ///??????????????????????????????
+			n.next = 0
+			break
+		}
+		id = fingerEntry(n.Id, n.next)
+	}
+
+	return nil
+}
+
+//Call periodly, verfiy succcessor, tell the successor of n
+func (n *Node) stabalize() error {
+	n.Successor[0] = Addr(n)
+	for i := 1; i <= suSize; i++ {
+		p, err := RPCGetPredecessor(n.Successor[i])
+		if err != nil {
+			log.Printf("GetPre %v", err)
+			return err
+		}
+		// a-->c(in a), c-->b(in c), ==> a<-->b<-->c
+		// ?? belong (n, successor) ??
+		if p != n.Successor[i-1] {
+			p, n.Successor[i] = n.Successor[i], p
+			//p is now c, s[i] is b, s[i - 1] is a
+			if err = RPCNotify(p, n.Successor[i-1]); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+//using 1 func-- 1 tick strategy, can not sync with(using frequency maybe different)
+func (n *Node) stabalizePeriod() error {
+	ticker := time.Tick(refreshTime)
+	for {
+		select { // if <-ticker == time.(0)
+		case <-ticker:
+			if err := n.stabalize(); err != nil {
+				// return err
+				fmt.Printf("stabalize err %v\n", err)
+			}
+		}
+	}
+
+	return nil
+}
+func (n *Node) checkPredecessorPeriod() error {
+	ticker := time.Tick(refreshTime)
+	for {
+		select { // if <-ticker == time.(0)
+		case <-ticker:
+			if err := n.checkPredecessor(); err != nil {
+				fmt.Printf("checkPredecessor err %v\n", err)
+				// return err
+			}
+		}
+	}
+	return nil
+}
+func (n *Node) fixFingerTablePeriod() error {
+	ticker := time.Tick(refreshTime)
+	for {
+		select { // if <-ticker == time.(0)
+		case <-ticker:
+			if err := n.fixFingerTable(); err != nil {
+				fmt.Printf("fixFingerTable err %v\n", err)
+				// return err
+			}
+		}
+	}
+
+}
+
+//this is a test function to check if rpc is working
+func (n *Node) Test(curmsg string, size *int) error {
+	n.Data[curmsg] = ""
+
+	*size = 0 //cnt again
+	for msg, _ := range n.Data {
+		*size++
+		fmt.Println(msg) // cur do at server, so get msg printed at server
+	}
+	return nil
+}
 
 func (n *Node) Put(args KVP, success *bool) error {
 	n.Data[args.K] = args.V
@@ -168,23 +314,4 @@ func (n *Node) Del(key string, success *bool) error {
 		*success = false
 		return nil //ok func, but can't find key
 	}
-}
-
-// func (n *Node) stabalize()             {}
-// func (n *Node) stabalizeOften()        {}
-// func (n *Node) checkPredecessor()      {}
-// func (n *Node) checkPredecessorOften() {}
-// func (n *Node) fixFingerTable()        {}
-// func (n *Node) fixFingerTableOften()   {}
-
-//this is a test function to check if rpc is working
-func (n *Node) Test(curmsg string, size *int) error {
-	n.Data[curmsg] = ""
-
-	*size = 0 //cnt again
-	for msg, _ := range n.Data {
-		*size++
-		fmt.Println(msg) // cur do at server, so get msg printed at server
-	}
-	return nil
 }

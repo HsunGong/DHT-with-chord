@@ -42,31 +42,30 @@ func Call(address string, method string, request interface{}, response interface
 	return nil
 }
 
-// func RPCNotify(addr string, notice string) error {
-// 	//var junk Nothing
-// 	if addr == "" {
-// 		return errors.New("Notify: rpc address is empty")
-// 	}
-// 	response := false
+func RPCNotify(address string, notice_node string) error {
+	if address == "" {
+		return errors.New("Notify: rpc address is empty")
+	}
+	response := false
 
-// 	return Call(addr, "Node.Notify", notice, &response)
-// }
+	return Call(address, "Node.Notify", notice_node, &response)
+}
 
-// func RPCGetPredecessor(addr string) (string, error) {
-// 	if addr == "" {
-// 		return "", errors.New("GetPredecessor: rpc address is empty")
-// 	}
+func RPCGetPredecessor(addr string) (string, error) {
+	if addr == "" {
+		return "", errors.New("GetPredecessor: rpc address is empty")
+	}
 
-// 	response := ""
-// 	if err := Call(addr, "Node.GetPredecessor", false, &response); err != nil {
-// 		return "", err
-// 	}
-// 	if response == "" {
-// 		return "", errors.New("GetPredecessor: rpc Empty predecessor")
-// 	}
+	response := ""
+	if err := Call(addr, "Node.GetPredecessor", false, &response); err != nil {
+		return "", err
+	}
+	if response == "" {
+		return "", errors.New("GetPredecessor: rpc Empty predecessor")
+	}
 
-// 	return response, nil
-// }
+	return response, nil
+}
 func RPCFindSuccessor(addr string, id *big.Int) (string, error) {
 	if addr == "" {
 		return "", errors.New("RPCFindSuccessor: rpc address is empty")
@@ -80,18 +79,18 @@ func RPCFindSuccessor(addr string, id *big.Int) (string, error) {
 	return response, nil
 }
 
-// func RPCHealthCheck(addr string) (bool, error) {
-// 	if addr == "" {
-// 		return false, errors.New("HealthCheck: rpc address is empty")
-// 	}
+func RPCHealthCheck(addr string) error {
+	if addr == "" {
+		return errors.New("HealthCheck: rpc address is empty")
+	}
 
-// 	response := 0
-// 	if err := Call(addr, "Node.Ping", 101, &response); err != nil {
-// 		return false, err
-// 	}
+	response := 0
+	if err := Call(addr, "Node.Ping", 101, &response); err != nil {
+		return err
+	}
 
-// 	return true, nil
-// }
+	return nil
+}
 
 //actually RPCTest
 func Testcli(address string, testmsg string) error {
