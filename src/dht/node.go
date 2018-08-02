@@ -11,7 +11,7 @@ import (
 const (
 	m           = 160 // 0-base indexing
 	suSize      = 3
-	refreshTime = 0.5 * time.Second
+	refreshTime = 500 * time.Millisecond
 )
 
 // Node of a virtual machine-- each resource is in Data
@@ -87,7 +87,6 @@ func (n *Node) join(address string) error {
 
 func (n *Node) Ping(request int, response *int) error {
 	//do something with request?? no need
-	fmt.Println("Get request for Ping: ", request)
 	*response = len(n.Data)
 	return nil
 }
@@ -240,6 +239,8 @@ func (n *Node) stabalize() error {
 			}
 		}
 	}
+
+	return nil
 }
 
 //using 1 func-- 1 tick strategy, can not sync with(using frequency maybe different)

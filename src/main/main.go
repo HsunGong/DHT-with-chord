@@ -24,7 +24,8 @@ var (
 	port   = dht.DefaultPort
 	host   = dht.DefaultHost
 
-	debug bool
+	debug     bool
+	listening bool // or begin maybe
 )
 
 //may change the port, once init(), cant change again, so dont use _init()
@@ -36,7 +37,7 @@ func _init() {
 func getline() ([]string, error) {
 	//reader := bufio.NewReader(os.Stdin)
 	//返回结果包含'\n'？？
-	var buffer string
+	buffer := make([]string, 0, 10)
 	scanner := bufio.NewScanner(os.Stdin)
 
 	if scanner.Err() != nil {
@@ -45,17 +46,37 @@ func getline() ([]string, error) {
 	}
 
 	//_, buffer, err := s
-	//scanner.Split()
-	if scanner.Scan() {
-		buffer = scanner.Text()
-		//fmt.Println("Order buffers ", buffer)
+	split := func(data []byte, atEOF bool) (int, []byte, error) {
+		return bufio.ScanLines(data, atEOF)
 	}
-	return strings.Split(strings.TrimSpace(buffer), " "), nil //delete all ' ' in buffer
+	f := func(from string, to *[]string) {
+		tmp := strings.Split(from, " ")
+		for _, s := range tmp {
+			if s != "" {
+				*to = append(*to, s)
+				// fmt.Println(*to)
+			}
+		}
+	}
+
+	scanner.Split(split)
+	if scanner.Scan() {
+		f(scanner.Text(), &buffer)
+		// fmt.Println(buffer)
+		// for i, _ := range buffer {
+		// 	fmt.Printf("Order buffers '%s'\n", buffer[i])
+		// }
+	}
+	if len(buffer) == 0 {
+		return buffer, errors.New("empty line")
+	}
+	return buffer, nil //delete all ' ' in buffer
 }
 
 func main() {
 	flag.BoolVar(&debug, "debug", false, "start with debug function")
 	flag.Parse()
+	listening = false
 
 	t := time.Now()
 	fmt.Printf("@CopyRight(c) 2018 Xun. All rights reserved\n--At %v DHT begins--\n", t.Round(time.Second).Format(layout))
@@ -64,6 +85,7 @@ func main() {
 		line, err := getline()
 		if err != nil {
 			fmt.Println("Command format error, get help from command help")
+			continue
 		}
 
 		_, ok := cmd[line[0]]
@@ -103,7 +125,7 @@ var cmd = map[string]func(args ...string) error{
 
 //port setting, before a server is init
 func Port(args ...string) error {
-	if node != nil {
+	if node != nil || listening {
 		return errors.New("port can't set again after calling create or join")
 	}
 
@@ -114,8 +136,8 @@ func Port(args ...string) error {
 	} else {
 		port = args[0]
 	}
-	fmt.Printf("Port set to %v\n", port)
 
+	fmt.Printf("Port set to %v\n", port)
 	return nil
 }
 
@@ -123,10 +145,16 @@ func Create(args ...string) error {
 	if len(args) > 0 {
 		return errors.New("too many arguments")
 	}
+	if listening {
+		return errors.New("already open server service")
+	} else {
+		listening = true
+	}
 
 	_init()
 	server.Listen()
 	fmt.Println("Node(created) listening at ", dht.Addr(node))
+
 	return nil
 }
 
@@ -135,6 +163,11 @@ func Create(args ...string) error {
 func Join(args ...string) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments")
+	}
+	if listening {
+		return errors.New("already open server service")
+	} else {
+		listening = true
 	}
 
 	_init()
@@ -155,6 +188,12 @@ func Quit(args ...string) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
+	if !listening {
+		return errors.New("No server service")
+	} else {
+		listening = false
+	}
+
 	if server == nil {
 		fmt.Println("Pragram end")
 		os.Exit(1)
@@ -170,6 +209,13 @@ func Quit(args ...string) error {
 }
 
 func Dump(args ...string) error {
+	if len(args) != 0 {
+		return errors.New("Too many arguments")
+	}
+	if !listening {
+		return errors.New("No server Service")
+	}
+
 	fmt.Println(server.Debug())
 	return nil
 }
@@ -183,6 +229,10 @@ func Ping(args ...string) error {
 	} else if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
+	if !listening {
+		return errors.New("No Server Service")
+	}
+
 	return dht.RPCPing(args[0])
 }
 
@@ -340,6 +390,9 @@ func Test(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("few arguements")
 	}
+	if listening {
+		return errors.New("already open server service")
+	}
 
 	if args[0] == "server" {
 		_init()
@@ -373,6 +426,11 @@ func Put(args ...string) error {
 	if len(args) != 2 {
 		return errors.New("Arguments number error")
 	}
+
+	if !listening {
+		return errors.New("No Server Service")
+	}
+
 	address := find(args[0]) // key's successor
 	if address == "" {
 		return errors.New("can't get address")
@@ -391,6 +449,10 @@ func Get(args ...string) error {
 	if len(args) != 1 {
 		return errors.New("Arguments number error")
 	}
+	if !listening {
+		return errors.New("No Server Service")
+	}
+
 	address := find(args[0]) // key's successor
 	if address == "" {
 		return errors.New("can't get address")
@@ -409,6 +471,10 @@ func Del(args ...string) error {
 	if len(args) != 1 {
 		return errors.New("Arguments number error")
 	}
+	if !listening {
+		return errors.New("No Server Service")
+	}
+
 	address := find(args[0]) // key's successor
 	if address == "" {
 		return errors.New("can't get address")

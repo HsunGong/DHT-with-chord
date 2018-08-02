@@ -108,7 +108,7 @@ func RPCPing(address string) error {
 	if err := Call(address, "Node.Ping", 3, &response); err != nil {
 		return err
 	}
-
-	fmt.Println("Got response: ", response)
+	
+	fmt.Printf("Got response %d from Ping(3)\n", response)
 	return nil
 }

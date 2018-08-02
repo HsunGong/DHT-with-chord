@@ -1,7 +1,6 @@
 package dht
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -46,9 +45,9 @@ func GetAddress() string {
 }
 
 type Server struct {
-	node      *Node
-	listener  net.Listener
-	listening bool
+	node     *Node
+	listener net.Listener
+	// listening bool
 
 	logfile *os.File
 	Logger  *log.Logger
@@ -69,10 +68,10 @@ func NewServer(n *Node) *Server {
 
 	//什么时候消亡？？
 	p := &Server{
-		node:      n, // only one element is inited
-		listening: false,
-		logfile:   logf,
-		Logger:    log.New(logf, "Server ", log.Ltime),
+		node: n, // only one element is inited
+		// listening: false,
+		logfile: logf,
+		Logger:  log.New(logf, "Server ", log.Ltime),
 	}
 	p.Logger.Println("-------------------------------------------------------")
 	p.Logger.Println("Init a Server at ", time.Now())
@@ -82,9 +81,9 @@ func NewServer(n *Node) *Server {
 //address is in s.node
 //this is the function to run a server
 func (s *Server) Listen() error {
-	if s.listening {
-		return errors.New("Already listening")
-	}
+	// if s.listening {
+	// return errors.New("Already listening")
+	// }
 
 	//actor--->>>>>>>>>>>>>>>>>>
 	rpc.Register(s.node) //using s.node as a object to do things by rpc
@@ -101,7 +100,7 @@ func (s *Server) Listen() error {
 
 	s.node.create()
 	s.listener = ler
-	s.listening = true
+	// s.listening = true
 
 	go http.Serve(ler, nil) // goroutine
 	return nil
@@ -121,10 +120,10 @@ func (s *Server) Join(address string) error {
 //for a server, it means unlisten
 func (s *Server) Quit() error {
 	if err := s.listener.Close(); err != nil {
-		s.listening = false
+		// s.listening = false
 		return err
 	}
-	s.listening = false
+	// s.listening = false
 
 	if err := s.logfile.Close(); err != nil {
 		fmt.Printf("logs Close: %v", err)
@@ -133,7 +132,8 @@ func (s *Server) Quit() error {
 }
 
 func (s *Server) IsListening() bool {
-	return s.listening
+	return s.listener != nil
+	// return s.listening
 }
 
 func (s *Server) Debug() string {
