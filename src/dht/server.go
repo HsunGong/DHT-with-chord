@@ -10,6 +10,22 @@ import (
 	"time"
 )
 
+var (
+	Logger *log.Logger
+	debug  bool
+	logf   *os.File
+)
+
+func init() {
+	debug = false
+	var err error
+	logf, err := os.OpenFile("./logs.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0664)
+	if err != nil {
+		log.Panicln("Crash in Log file init")
+	}
+	Logger = log.New(logf, ">>> ", log.Ltime)
+}
+
 //local address
 func GetAddress() string {
 	var address string
@@ -49,8 +65,7 @@ type Server struct {
 	listener net.Listener
 	// listening bool
 
-	logfile *os.File
-	Logger  *log.Logger
+	// logfile *os.File
 }
 
 // type Nothing struct{}
@@ -60,21 +75,13 @@ type Server struct {
 // 初次之外，在公共的日志里规避打印程序的调试或者提示信息。
 
 func NewServer(n *Node) *Server {
-	logf, err := os.OpenFile("./logs.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0664)
-	if err != nil {
-		fmt.Println("cant open logs")
-		os.Exit(1)
-	}
-
 	//什么时候消亡？？
 	p := &Server{
 		node: n, // only one element is inited
 		// listening: false,
-		logfile: logf,
-		Logger:  log.New(logf, "Server ", log.Ltime),
 	}
-	p.Logger.Println("-------------------------------------------------------")
-	p.Logger.Println("Init a Server at ", time.Now())
+	Logger.Println("--------------------------------------------------------------- <<<")
+	Logger.Println("Init a Server at ", time.Now())
 	return p
 }
 
@@ -92,10 +99,10 @@ func (s *Server) Listen() error {
 	ler, err := net.Listen("tcp", ":"+s.node.Port) // address
 	if err != nil {
 		fmt.Printf("listen error: %v", err)
-		s.Logger.Panicf("listen error: %v", err)
+		Logger.Panicf("listen error: %v", err)
 		//panic(err)
 	} else {
-		s.Logger.Println("listen at ", ":"+s.node.Port)
+		Logger.Println("listen at ", ":"+s.node.Port)
 	}
 
 	s.node.create()
@@ -120,12 +127,14 @@ func (s *Server) Join(address string) error {
 //for a server, it means unlisten
 func (s *Server) Quit() error {
 	if err := s.listener.Close(); err != nil {
-		// s.listening = false
 		return err
 	}
-	// s.listening = false
 
-	if err := s.logfile.Close(); err != nil {
+	if err := RPCAdapt(s.node); err != nil {
+		return err
+	}
+
+	if err := logf.Close(); err != nil {
 		fmt.Printf("logs Close: %v", err)
 	}
 	return nil
@@ -137,9 +146,7 @@ func (s *Server) IsListening() bool {
 }
 
 func (s *Server) Debug() string {
-	if !s.node.debug {
-		return ""
-	}
+
 	return fmt.Sprintf(`
 ID: %v
 Listening: %v

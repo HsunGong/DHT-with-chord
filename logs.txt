@@ -1,0 +1,26 @@
+>>> 18:08:36 --------------------------------------------------------------- <<<
+>>> 18:08:36 Init a Server at  2018-08-04 18:08:36.5670547 +0800 CST m=+5.049316201
+>>> 18:08:36 listen at  :1
+>>> 18:08:37 call error: Predecessor is Empty
+>>> 18:08:44 --------------------------------------------------------------- <<<
+>>> 18:08:44 Init a Server at  2018-08-04 18:08:44.2209728 +0800 CST m=+19.688118501
+>>> 18:08:44 listen at  :2
+>>> 18:08:48 call error: reading body gob: attempt to decode into a non-pointer
+>>> 18:08:49 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:08:49 call error: reading body gob: attempt to decode into a non-pointer
+>>> 18:08:49 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:08:49 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:08:50 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:10:25 --------------------------------------------------------------- <<<
+>>> 18:10:25 Init a Server at  2018-08-04 18:10:25.1769828 +0800 CST m=+6.908310601
+>>> 18:10:25 listen at  :1
+>>> 18:10:26 call error: Predecessor is Empty
+>>> 18:10:30 --------------------------------------------------------------- <<<
+>>> 18:10:30 Init a Server at  2018-08-04 18:10:30.487276 +0800 CST m=+10.895000901
+>>> 18:10:30 listen at  :2
+>>> 18:10:32 call error: reading body gob: attempt to decode into a non-pointer
+>>> 18:10:34 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:10:34 call error: reading body gob: attempt to decode into a non-pointer
+>>> 18:10:34 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:10:34 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 18:10:35 dial failed: dial tcp 192.168.137.1:2: connectex: No connection could be made because the target machine actively refused it.

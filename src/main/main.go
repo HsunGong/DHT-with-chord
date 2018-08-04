@@ -175,12 +175,12 @@ func Join(args ...string) error {
 	if len(args) == 1 {
 		addres = args[0]
 	}
-	fmt.Println("It is ", addres)
-	if err := server.Join(addres); err != nil {
+
+	err := server.Join(addres)
+	if err != nil {
 		return err
 	}
 	fmt.Println("Joined at ", addres)
-
 	return nil
 }
 
@@ -409,18 +409,6 @@ func Test(args ...string) error {
 	return nil
 }
 
-//if return "", cant do the function anymore, return errors till main()
-//if dial is panic, panic the whole program????????????
-func find(key string) string {
-	response, err := dht.RPCFindSuccessor(dht.Addr(node), dht.Hash(key))
-	if err != nil {
-		fmt.Printf("find address: %v\n", err) //maybe panic??
-		return ""
-	}
-
-	return response
-}
-
 /// put key value
 func Put(args ...string) error {
 	if len(args) != 2 {
@@ -431,20 +419,8 @@ func Put(args ...string) error {
 		return errors.New("No Server Service")
 	}
 
-	address := find(args[0]) // key's successor
-	if address == "" {
-		return errors.New("can't get address")
-	}
-
-	var response bool
-	if err := dht.Call(address, "Node.Put", dht.KVP{K: args[0], V: args[1]}, &response); err != nil {
-		return err
-	}
-
-	fmt.Printf("Put [%v] stored %v at %s is %t\n", address, args[1], args[0], response)
-	return nil
+	return dht.RPCPut(dht.Addr(node), args[0], args[1])
 }
-
 func Get(args ...string) error {
 	if len(args) != 1 {
 		return errors.New("Arguments number error")
@@ -453,20 +429,8 @@ func Get(args ...string) error {
 		return errors.New("No Server Service")
 	}
 
-	address := find(args[0]) // key's successor
-	if address == "" {
-		return errors.New("can't get address")
-	}
-
-	var response string
-	if err := dht.Call(address, "Node.Get", args[0], &response); err != nil {
-		return err
-	}
-
-	fmt.Printf("Get [%v] stored %v at %s\n", address, response, args[0])
-	return nil
+	return dht.RPCGet(dht.Addr(node), args[0])
 }
-
 func Del(args ...string) error {
 	if len(args) != 1 {
 		return errors.New("Arguments number error")
@@ -474,17 +438,5 @@ func Del(args ...string) error {
 	if !listening {
 		return errors.New("No Server Service")
 	}
-
-	address := find(args[0]) // key's successor
-	if address == "" {
-		return errors.New("can't get address")
-	}
-
-	var response bool
-	if err := dht.Call(address, "Node.Del", args[0], &response); err != nil {
-		return err
-	}
-
-	fmt.Printf("Del [%v] KVPair(%v) is %t\n", address, args[0], response)
-	return nil
+	return dht.RPCDel(dht.Addr(node), args[0])
 }

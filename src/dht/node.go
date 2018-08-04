@@ -11,7 +11,7 @@ import (
 const (
 	m           = 160 // 0-base indexing
 	suSize      = 3
-	refreshTime = 500 * time.Millisecond
+	refreshTime = 1000 * time.Millisecond
 )
 
 // Node of a virtual machine-- each resource is in Data
@@ -54,15 +54,15 @@ func Addr(n *Node) string {
 
 //init predecessor and successor
 func (n *Node) create() {
-	n.Predecessor = Addr(n) // or "", can be stablized later
+	n.Predecessor = "" //Addr(n) // or "", can be stablized later
 	for i, _ := range n.Successor {
 		n.Successor[i] = Addr(n)
 	}
 
 	//go----
-	go n.stabalizePeriod()
 	go n.checkPredecessorPeriod()
-	go n.fixFingerTablePeriod()
+	go n.stabilizePeriod()
+	// go n.fixFingerTablePeriod()
 }
 
 //init node's info
@@ -78,10 +78,15 @@ func (n *Node) join(address string) error {
 		}
 		n.Successor[i] = addr
 		if n.debug {
-			fmt.Printf("successor[%d] are: %v\n", i, n.Successor[i])
+			fmt.Printf("join and find successor[%d] are: %v\n", i, n.Successor[i])
 		}
 	}
 
+	//notify the successor[1]
+	fmt.Println("notify")
+	if err := RPCNotify(n.Successor[1], Addr(n)); err != nil {
+		fmt.Println("Join but Notify err")
+	}
 	return nil
 }
 
@@ -130,14 +135,14 @@ func (n *Node) findFingerTable(id *big.Int) string {
 func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
 	n.Successor[0] = Addr(n)
 	for i := 1; i <= suSize; i++ {
-		if n.debug {
-			fmt.Printf("successor[%d] are: (%v) %v\n", i, n.Successor[i-1], n.Successor[i])
-		}
+		// if n.debug {
+		// 	fmt.Printf("successor[%d] are: (%v) %v\n", i, n.Successor[i-1], n.Successor[i])
+		// }
 		if InclusiveBetween(id, Hash(n.Successor[i-1]), Hash(n.Successor[i])) { //id ∈ (n, successor]
 			*successor = n.Successor[i]
-			if n.debug {
-				fmt.Println("successor find: ", n.Successor[i])
-			}
+			// if n.debug {
+			fmt.Println(id, " successor find: ", n.Successor[i])
+			// }
 			return nil
 		}
 	}
@@ -190,9 +195,9 @@ func (n *Node) checkPredecessor() error {
 //n.next is the index of finger to fix
 func (n *Node) fixFingerTable() error {
 	n.next += 1
-	if n.debug {
-		fmt.Printf("n.next = %d\n", n.next)
-	}
+	// if n.debug {
+	// 	fmt.Printf("n.next = %d\n", n.next)
+	// }
 	if n.next >= m {
 		n.next = 0
 	}
@@ -221,37 +226,58 @@ func (n *Node) fixFingerTable() error {
 }
 
 //Call periodly, verfiy succcessor, tell the successor of n
-func (n *Node) stabalize() error {
+func (n *Node) stabilize() error {
 	n.Successor[0] = Addr(n)
 	for i := 1; i <= suSize; i++ {
-		p, err := RPCGetPredecessor(n.Successor[i])
-		if err != nil {
-			log.Printf("GetPre %v", err)
-			return err
-		}
-		// a-->c(in a), c-->b(in c), ==> a<-->b<-->c
-		// ?? belong (n, successor) ??
-		if p != n.Successor[i-1] {
-			p, n.Successor[i] = n.Successor[i], p
-			//p is now c, s[i] is b, s[i - 1] is a
-			if err = RPCNotify(p, n.Successor[i-1]); err != nil {
-				return err
+		pre_i, err := RPCGetPredecessor(n.Successor[i])
+
+		if pre_i != "" && err == nil { // FIND A PREDECESSOR
+			// a-->c(in a), c-->b(in c), ==> a<-->b<-->c
+			// ?? belong (n, successor) ??
+			if pre_i != n.Successor[i-1] { // ?????
+				//if ExclusiveBetween(Hash(p), Hash(n.Successor[i-1], Hash(n.Successor[i]) {
+				fmt.Println("check predecessor: ", pre_i, n.Successor[i-1], n.Successor[i])
+				for j := suSize; j > i; j-- {
+					n.Successor[j] = n.Successor[j-1]
+				}
+				n.Successor[i] = pre_i
+			}
+			
+		} else { // no this successor[i] or its predecessor
+			// successor[i] crash
+			if RPCHealthCheck(n.Successor[i]) != nil {
+				fmt.Printf("successor %d dead\n", i)
+				for j := i; j < suSize; j++ {
+					n.Successor[j] = n.Successor[j+1]
+				}
+				if err := n.FindSuccessor(Hash(n.Successor[suSize-1]), &n.Successor[suSize]); err != nil {
+					fmt.Println("Woooooo!!!!!!!!!!!!!!!!")
+					log.Panicf("WOOODouble Error")
+				}
+				i--
+			} else {
+				// RPCNotify()
 			}
 		}
-	}
 
+		if err = RPCNotify(n.Successor[i], n.Successor[i-1]); err != nil {
+			fmt.Println("Woooooo!!!!!!!!!!!!!!!!")
+			return err
+		}
+	}
 	return nil
 }
 
 //using 1 func-- 1 tick strategy, can not sync with(using frequency maybe different)
-func (n *Node) stabalizePeriod() error {
+func (n *Node) stabilizePeriod() error {
 	ticker := time.Tick(refreshTime)
 	for {
 		select { // if <-ticker == time.(0)
 		case <-ticker:
-			if err := n.stabalize(); err != nil {
+			// fmt.Println("check stablize")
+			if err := n.stabilize(); err != nil {
 				// return err
-				fmt.Printf("stabalize err %v\n", err)
+				fmt.Printf("stabilize err %v\n", err)
 			}
 		}
 	}
@@ -263,6 +289,7 @@ func (n *Node) checkPredecessorPeriod() error {
 	for {
 		select { // if <-ticker == time.(0)
 		case <-ticker:
+			// fmt.Println("check Pre")
 			if err := n.checkPredecessor(); err != nil {
 				fmt.Printf("checkPredecessor err %v\n", err)
 				// return err
@@ -315,4 +342,10 @@ func (n *Node) Del(key string, success *bool) error {
 		*success = false
 		return nil //ok func, but can't find key
 	}
+}
+
+func (n *Node) Adapt(datas map[string]string, success *bool) error {
+
+	*success = true
+	return nil
 }
