@@ -5,7 +5,6 @@ import (
 	// "dht"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"net/rpc"
 )
@@ -44,13 +43,13 @@ func Call(address string, method string, request interface{}, response interface
 }
 
 // address.Predecessor --- be_noticed_node -- address
-func RPCNotify(address string, be_noticed_node string) error {
+func RPCNotify(address string, new_predecessor string) error {
 	if address == "" {
 		return errors.New("Notify: rpc address is empty")
 	}
 	response := false
 	// fmt.Println("RPC NOtify get")
-	return Call(address, "Node.Notify", be_noticed_node, &response)
+	return Call(address, "Node.Notify", new_predecessor, &response)
 }
 
 func RPCGetPredecessor(addr string) (string, error) {
@@ -81,30 +80,6 @@ func RPCFindSuccessor(addr string, id *big.Int) (string, error) {
 	return response, nil
 }
 
-func RPCHealthCheck(addr string) error {
-	if addr == "" {
-		return errors.New("HealthCheck: rpc address is empty")
-	}
-
-	response := 0
-	if err := Call(addr, "Node.Ping", 101, &response); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-//actually RPCTest
-func Testcli(address string, testmsg string) error {
-	var size int
-	if err := Call(address, "Node.Test", testmsg, &size); err != nil {
-		log.Printf("Test rpc Error: %v", err)
-		return err
-	}
-	fmt.Printf("get msg num: %d\n", size)
-	return nil
-}
-
 func RPCPing(address string) error {
 	var response int
 	if err := Call(address, "Node.Ping", 3, &response); err != nil {
@@ -121,7 +96,7 @@ func RPCAdapt(n *Node) error {
 	var response bool
 	for err != nil && i <= suSize {
 		// fmt.Println("aefnasdkjace a----------------------------------------------------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-		err = Call(n.Successor[i], "Node.Adapt", n.Data, response)
+		err = Call(n.SuccessorTable[i], "Node.Adapt", n.Data, response)
 		i++
 	}
 
@@ -183,5 +158,12 @@ func RPCDel(address string, key string) error {
 	}
 
 	fmt.Printf("Del [%v] KVPair(%v) is %t\n", del_node, key, response)
+	return nil
+}
+func RPCGetSuccessors(address string, s []string) error {
+	var a int
+	if err := Call(address, "Node.GetSuccessors", a, s); err != nil {
+		return err
+	}
 	return nil
 }

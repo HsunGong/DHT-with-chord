@@ -121,7 +121,6 @@ func (s *Server) Join(address string) error {
 		return err
 	}
 	return s.node.join(address)
-
 }
 
 //for a server, it means unlisten
@@ -152,8 +151,9 @@ ID: %v
 Listening: %v
 Address: %v
 Data: %v
+Successors: %v
 Successor: %v
 Predecessor: %v
 Fingers: %v
-`, s.node.Id, s.IsListening(), Addr(s.node), s.node.Data, s.node.Successor, s.node.Predecessor, s.node.FingerTable)
+`, s.node.Id, s.IsListening(), Addr(s.node), s.node.Data, s.node.SuccessorTable, s.node.successor, s.node.Predecessor, s.node.FingerTable)
 }

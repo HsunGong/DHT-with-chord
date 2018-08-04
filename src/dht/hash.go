@@ -59,10 +59,10 @@ func InclusiveBetween(id *big.Int, left *big.Int, right *big.Int) bool {
 		//right > left
 		return id.Cmp(left) == 1 && right.Cmp(id) >= 0
 	} else {
+		// fmt.Println(id, left, right)
 		return right.Cmp(id) >= 0 || id.Cmp(left) == 1
 		// left --- id --- 0 or 0 --- id --- right
 	}
-
 }
 
 // judge if Exclusive id belongs to (left, right)

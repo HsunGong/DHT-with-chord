@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -116,8 +117,8 @@ var cmd = map[string]func(args ...string) error{
 	"get":    Get,
 	"delete": Del,
 
-	"ping":     Ping,
-	"test":     Test,
+	"ping": Ping,
+	// "test":     Test,
 	"dump":     Dump,
 	"dumpall":  Dump,
 	"dumpaddr": Dump,
@@ -178,7 +179,9 @@ func Join(args ...string) error {
 
 	err := server.Join(addres)
 	if err != nil {
-		return err
+		listening = false
+		log.Panicf("Join error %v", err)
+		// return err
 	}
 	fmt.Println("Joined at ", addres)
 	return nil
@@ -383,31 +386,31 @@ walk around the ring, dumping all information about every peer in the ring in cl
 	return err
 }
 
-//can specially judge server and client.
-//switch server and client and some infos
-//order is like: "test server" or "test client msg"
-func Test(args ...string) error {
-	if len(args) == 0 {
-		return errors.New("few arguements")
-	}
-	if listening {
-		return errors.New("already open server service")
-	}
+// //can specially judge server and client.
+// //switch server and client and some infos
+// //order is like: "test server" or "test client msg"
+// func Test(args ...string) error {
+// 	if len(args) == 0 {
+// 		return errors.New("few arguements")
+// 	}
+// 	if listening {
+// 		return errors.New("already open server service")
+// 	}
 
-	if args[0] == "server" {
-		_init()
-		fmt.Println("server is doing things")
-		server.Listen()
-	} else if args[0] == "client" {
-		if len(args) != 2 {
-			return errors.New("need command like : test client/server msg[only one]")
-		}
-		fmt.Println("client is dong things")
-		dht.Testcli(host+":"+port, args[1])
-	}
+// 	if args[0] == "server" {
+// 		_init()
+// 		fmt.Println("server is doing things")
+// 		server.Listen()
+// 	} else if args[0] == "client" {
+// 		if len(args) != 2 {
+// 			return errors.New("need command like : test client/server msg[only one]")
+// 		}
+// 		fmt.Println("client is dong things")
+// 		dht.Testcli(host+":"+port, args[1])
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 /// put key value
 func Put(args ...string) error {
