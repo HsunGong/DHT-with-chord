@@ -154,7 +154,7 @@ func Create(args ...string) error {
 
 	_init()
 	server.Listen()
-	fmt.Println("Node(created) listening at ", dht.Addr(node))
+	fmt.Println("Node(created) listening at ", node.Address)
 
 	return nil
 }
@@ -422,7 +422,7 @@ func Put(args ...string) error {
 		return errors.New("No Server Service")
 	}
 
-	return dht.RPCPut(dht.Addr(node), args[0], args[1])
+	return dht.RPCPut(node.Address, args[0], args[1])
 }
 func Get(args ...string) error {
 	if len(args) != 1 {
@@ -432,7 +432,7 @@ func Get(args ...string) error {
 		return errors.New("No Server Service")
 	}
 
-	return dht.RPCGet(dht.Addr(node), args[0])
+	return dht.RPCGet(node.Address, args[0])
 }
 func Del(args ...string) error {
 	if len(args) != 1 {
@@ -441,5 +441,5 @@ func Del(args ...string) error {
 	if !listening {
 		return errors.New("No Server Service")
 	}
-	return dht.RPCDel(dht.Addr(node), args[0])
+	return dht.RPCDel(node.Address, args[0])
 }

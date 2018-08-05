@@ -807,3 +807,103 @@
 >>> 02:58:18 dial failed: dial tcp 192.168.1.102:3410: connectex: No connection could be made because the target machine actively refused it.
 >>> 02:58:19 dial failed: dial tcp 192.168.1.102:3410: connectex: No connection could be made because the target machine actively refused it.
 >>> 02:58:19 dial failed: dial tcp 192.168.1.102:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:21:45 --------------------------------------------------------------- <<<
+>>> 14:21:45 Init a Server at  2018-08-05 14:21:45.6764885 +0800 CST m=+5.711895001
+>>> 14:21:45 listen at  :5
+>>> 14:21:46 call error: Predecessor is Empty
+>>> 14:21:46 call error: Predecessor is Empty
+>>> 14:21:46 call error: Predecessor is Empty
+>>> 14:21:46 call error: Predecessor is Empty
+>>> 14:22:28 --------------------------------------------------------------- <<<
+>>> 14:22:28 Init a Server at  2018-08-05 14:22:28.5352696 +0800 CST m=+3.339914201
+>>> 14:22:28 listen at  :1
+>>> 14:22:29 call error: Predecessor is Empty
+>>> 14:22:29 call error: Predecessor is Empty
+>>> 14:22:29 call error: Predecessor is Empty
+>>> 14:22:29 call error: Predecessor is Empty
+>>> 14:23:24 --------------------------------------------------------------- <<<
+>>> 14:23:24 Init a Server at  2018-08-05 14:23:24.5923048 +0800 CST m=+2.880584501
+>>> 14:23:24 listen at  :1
+>>> 14:23:25 call error: Predecessor is Empty
+>>> 14:23:25 call error: Predecessor is Empty
+>>> 14:23:25 call error: Predecessor is Empty
+>>> 14:23:25 call error: Predecessor is Empty
+>>> 14:23:49 --------------------------------------------------------------- <<<
+>>> 14:23:49 Init a Server at  2018-08-05 14:23:49.4406442 +0800 CST m=+17.565947201
+>>> 14:23:49 listen at  :2
+>>> 14:24:09 --------------------------------------------------------------- <<<
+>>> 14:24:09 Init a Server at  2018-08-05 14:24:09.4783155 +0800 CST m=+5.693142201
+>>> 14:24:09 listen at  :3
+>>> 14:28:23 --------------------------------------------------------------- <<<
+>>> 14:28:23 Init a Server at  2018-08-05 14:28:23.8055661 +0800 CST m=+0.151107501
+>>> 14:28:23 listen at  :3410
+>>> 14:28:24 call error: Predecessor is Empty
+>>> 14:28:24 call error: Predecessor is Empty
+>>> 14:28:24 call error: Predecessor is Empty
+>>> 14:28:24 call error: Predecessor is Empty
+>>> 14:28:41 --------------------------------------------------------------- <<<
+>>> 14:28:41 Init a Server at  2018-08-05 14:28:41.7274996 +0800 CST m=+9.054837701
+>>> 14:28:41 listen at  :1
+>>> 14:28:57 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:28:58 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:28:59 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:01 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:02 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:03 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:04 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:05 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:06 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:07 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:08 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:29:09 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:39:03 --------------------------------------------------------------- <<<
+>>> 14:39:03 Init a Server at  2018-08-05 14:39:03.5587379 +0800 CST m=+0.103072901
+>>> 14:39:03 listen at  :3410
+>>> 14:39:04 call error: Predecessor is Empty
+>>> 14:39:04 call error: Predecessor is Empty
+>>> 14:39:04 call error: Predecessor is Empty
+>>> 14:39:04 call error: Predecessor is Empty
+>>> 14:39:48 --------------------------------------------------------------- <<<
+>>> 14:39:48 Init a Server at  2018-08-05 14:39:48.4351106 +0800 CST m=+22.098486101
+>>> 14:39:48 listen at  :2
+>>> 14:40:41 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:42 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:42 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:42 call error: Predecessor is Empty
+>>> 14:40:42 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:43 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:43 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:43 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:44 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:45 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:47 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:48 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:49 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:50 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:51 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:52 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:53 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:40:54 dial failed: dial tcp 10.163.134.98:3410: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:42:49 --------------------------------------------------------------- <<<
+>>> 14:42:49 Init a Server at  2018-08-05 14:42:49.40485 +0800 CST m=+3.680912301
+>>> 14:42:49 listen at  :3410
+>>> 14:42:50 call error: Predecessor is Empty
+>>> 14:42:50 call error: Predecessor is Empty
+>>> 14:42:50 call error: Predecessor is Empty
+>>> 14:42:50 call error: Predecessor is Empty
+>>> 14:42:59 --------------------------------------------------------------- <<<
+>>> 14:42:59 Init a Server at  2018-08-05 14:42:59.5087164 +0800 CST m=+4.858981601
+>>> 14:42:59 listen at  :1
+>>> 14:43:07 --------------------------------------------------------------- <<<
+>>> 14:43:07 Init a Server at  2018-08-05 14:43:07.4589468 +0800 CST m=+4.414661101
+>>> 14:43:07 listen at  :2
+>>> 14:44:02 call error: reading body gob: attempt to decode into a non-pointer
+>>> 14:44:02 call error: reading body gob: attempt to decode into a non-pointer
+>>> 14:44:02 call error: reading body gob: attempt to decode into a non-pointer
+>>> 14:44:03 dial failed: dial tcp 10.163.134.98:1: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:44:03 dial failed: dial tcp 10.163.134.98:1: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:44:41 dial failed: dial tcp 10.163.134.98:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:44:41 dial failed: dial tcp 10.163.134.98:2: connectex: No connection could be made because the target machine actively refused it.
+>>> 14:44:41 call error: Predecessor is Empty
+>>> 14:44:41 call error: Predecessor is Empty
+>>> 14:44:41 call error: Predecessor is Empty

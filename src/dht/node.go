@@ -17,9 +17,10 @@ const (
 // Node of a virtual machine-- each resource is in Data
 type Node struct {
 	// HOst + ":" + Port = address of node(server), using n.addr() to get
-	Host           string
-	Port           string
-	Id             *big.Int           // hash(addr)
+	Host string
+	Port string
+	// Id             *big.Int // hash(addr)
+	Address        string
 	SuccessorTable [suSize + 1]string // do at 1, 2, 3; using 0 to do successor, so that can simplify
 	successor      string
 	Predecessor    string
@@ -39,28 +40,24 @@ func NewNode(_port string, _debug bool) *Node {
 	_host := GetAddress()
 
 	p := &Node{
-		Host:  _host,
-		Port:  _port,
-		Id:    Hash(fmt.Sprintf("%v:%v", _host, _port)),
-		Data:  make(map[string]string),
-		debug: _debug,
+		Host: _host,
+		Port: _port,
+		// Id:    Hash(fmt.Sprintf("%v:%v", _host, _port)),
+		Address: fmt.Sprintf("%v:%v", _host, _port),
+		Data:    make(map[string]string),
+		debug:   _debug,
 		// FingerTable: make([]string, 0, m),
 		next: 0,
 	}
-	fmt.Println("What os: ", p.Id, Addr(p))
 	return p
-}
-
-func Addr(n *Node) string {
-	return n.Host + ":" + n.Port
 }
 
 //init predecessor and successor
 func (n *Node) create() {
 	n.Predecessor = "" //Addr(n) // or "", can be stablized later
-	n.successor = Addr(n)
+	n.successor = n.Address
 	for i, _ := range n.SuccessorTable {
-		n.SuccessorTable[i] = Addr(n)
+		n.SuccessorTable[i] = n.Address
 	}
 
 	go n.checkPredecessorPeriod()
@@ -72,7 +69,7 @@ func (n *Node) create() {
 func (n *Node) join(address string) error {
 	n.Predecessor = "" // have to be stablized later
 
-	addr, err := RPCFindSuccessor(address, n.Id)
+	addr, err := RPCFindSuccessor(address, Hash(n.Address))
 	if err != nil {
 		fmt.Printf("node join-findsuccessor %v\n", err)
 		return err
@@ -84,7 +81,7 @@ func (n *Node) join(address string) error {
 
 	//notify the successor[1]
 	fmt.Println("notify")
-	if err := RPCNotify(n.successor, Addr(n)); err != nil {
+	if err := RPCNotify(n.successor, n.Address); err != nil {
 		fmt.Println("Join but Notify err")
 	}
 	n.stabilize()
@@ -122,7 +119,7 @@ func (n *Node) findFingerTable(id *big.Int) string {
 
 	slice := n.FingerTable[:]
 	for i := len(slice); i >= 0; i-- { ///??????
-		if !ExclusiveBetween(Hash(n.FingerTable[i]), n.Id, id) {
+		if !ExclusiveBetween(Hash(n.FingerTable[i]), Hash(n.Address), id) {
 			// the return should be i - 1
 			// what if i == 0?, impossible for successor have to be included
 			if i == 0 {
@@ -145,17 +142,17 @@ func (n *Node) findFingerTable(id *big.Int) string {
 // or a better node to continue the search with
 //!!!!!maybe can repete with some node(in fixfinger)
 func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
-	fmt.Println("Find successor")
-	if InclusiveBetween(id, n.Id, Hash(n.successor)) {
+	// fmt.Println("Find successor")
+	if InclusiveBetween(id, Hash(n.Address), Hash(n.successor)) {
 		*successor = n.successor
 		return nil
 	}
 
 	for i := 1; i <= suSize; i++ {
-		fmt.Println("circle")
+		// fmt.Println("circle")
 		if InclusiveBetween(id, Hash(n.SuccessorTable[i-1]), Hash(n.SuccessorTable[i])) { //id ∈ (n, successor]
 			*successor = n.SuccessorTable[i]
-			fmt.Println(id, " successor find: ", n.SuccessorTable[i])
+			// fmt.Println(id, " successor find: ", n.SuccessorTable[i])
 			return nil
 		}
 	}
@@ -184,9 +181,9 @@ func (n *Node) GetPredecessor(none bool, addr *string) error {
 //address is the node that should be awared
 //address maybe the n's Predecessor
 func (n *Node) Notify(new_predecessor string, response *bool) error {
-	if n.Predecessor == "" || ExclusiveBetween(Hash(new_predecessor), Hash(n.Predecessor), n.Id) {
+	if n.Predecessor == "" || ExclusiveBetween(Hash(new_predecessor), Hash(n.Predecessor), Hash(n.Address)) {
 		if n.debug {
-			fmt.Printf("Notify Success: %s\n", new_predecessor)
+			fmt.Printf("%s Notify %s\n", n.Address, new_predecessor)
 		}
 		n.Predecessor = new_predecessor
 		*response = true
@@ -196,37 +193,30 @@ func (n *Node) Notify(new_predecessor string, response *bool) error {
 }
 
 //check whther predecessor is failed
-func (n *Node) checkPredecessor() error {
-	if n.Predecessor == "" {
-		return errors.New("Check predecessor:  is empty")
-	}
-
+func (n *Node) checkPredecessor() {
 	response := 0
 	if err := Call(n.Predecessor, "Node.Ping", 101, &response); err != nil {
 		n.Predecessor = ""
 	}
-
-	return nil
 }
 
 //call periodly, refresh.
 //n.next is the index of finger to fix
-func (n *Node) fixFingerTable() error {
+func (n *Node) fixFingerTable() {
 	// n.next += 1
 	// if n.next >= m {
 	// 	n.next = 0
 	// }
 
-	id := fingerEntry(n.Id, n.next)
+	id := fingerEntry(Hash(n.Address), n.next)
 	var response string
 	if err := n.FindSuccessor(id, &response); err != nil || response == "" {
-		fmt.Println("fixFingertable err")
-		return err
+		fmt.Printf("fixFingertable err at: %v\n", err)
+		return
 	}
 
-	n.Id = Hash(Addr(n)) /// ????? --????
 	// fmt.Printf("cur: %d and %d, resp: %d\n", n.Id, Hash(Addr(n)), Hash(response))
-	for InclusiveBetween(id, n.Id, Hash(response)) {
+	for InclusiveBetween(id, Hash(n.Address), Hash(response)) {
 		n.FingerTable[n.next] = response
 		// fmt.Printf("fixed [%d] = %s\n", n.next, response)
 
@@ -235,16 +225,9 @@ func (n *Node) fixFingerTable() error {
 			n.next = 0
 			break
 		}
-		id = fingerEntry(n.Id, n.next)
+		id = fingerEntry(Hash(n.Address), n.next)
 	}
-
-	return nil
 }
-
-// func (n *Node) GetSuccessors(a interface{}, s []string) error {
-// 	copy(s, n.Successor[:])
-// 	return nil
-// }
 
 //Call periodly, verfiy succcessor, tell the successor of n
 //only check successor 1
@@ -255,14 +238,14 @@ func (n *Node) stabilize() error {
 	// a-->c(in a), c-->b(in c), ==> a<-->b<-->c
 	// ?? belong (n, successor) ??
 	if err == nil {
-		if pre_i != Addr(n) { // ?????
+		if pre_i != n.Address { // ?????
 			//if ExclusiveBetween(Hash(p), Hash(n.Successor[i-1], Hash(n.Successor[i]) {
-			fmt.Printf("change predecessor: %s --> [%s] --> %s\n", n.successor, pre_i, Addr(n))
+			fmt.Printf("change predecessor: %s --> [%s] --> %s\n", n.successor, pre_i, n.Address)
 
 			n.successor = pre_i
 			if err := n.fixSuccessorTable(); err != nil {
 				n.successor = n.SuccessorTable[0]
-				RPCNotify(n.successor, Addr(n))
+				RPCNotify(n.successor, n.Address)
 			}
 		}
 		goto SKIP
@@ -274,8 +257,8 @@ func (n *Node) stabilize() error {
 				continue
 			}
 
-			if pre_i != Addr(n) { // ?????
-				fmt.Printf("change predecessor: %s --> [%s] --> %s\n", n.successor, pre_i, Addr(n))
+			if pre_i != n.Address { // ?????
+				fmt.Printf("change predecessor: %s --> [%s] --> %s\n", n.successor, pre_i, n.Address)
 				n.successor = pre_i
 				if err := n.fixSuccessorTable(); err != nil {
 					n.successor = n.SuccessorTable[0]
@@ -289,12 +272,9 @@ func (n *Node) stabilize() error {
 	log.Println("Successor List Failed")
 
 SKIP:
-	if err = RPCNotify(n.successor, Addr(n)); err != nil {
-		fmt.Println("Woooooo!!!!!!!!!!!!!!!!")
-		return err
+	if err = RPCNotify(n.successor, n.Address); err != nil {
+		fmt.Printf("Stabilize with Notfy err: %v", err)
 	}
-
-	return nil
 }
 
 //using 1 func-- 1 tick strategy, can not sync with(using frequency maybe different)
@@ -319,10 +299,7 @@ func (n *Node) checkPredecessorPeriod() error {
 		select { // if <-ticker == time.(0)
 		case <-ticker:
 			// fmt.Println("check Pre")
-			if err := n.checkPredecessor(); err != nil {
-				fmt.Printf("checkPredecessor err %v\n", err)
-				// return err
-			}
+			n.checkPredecessor()
 		}
 	}
 	return nil
@@ -332,10 +309,7 @@ func (n *Node) fixFingerTablePeriod() error {
 	for {
 		select { // if <-ticker == time.(0)
 		case <-ticker:
-			if err := n.fixFingerTable(); err != nil {
-				fmt.Printf("fixFingerTable err %v\n", err)
-				// return err
-			}
+			n.fixFingerTable()
 		}
 	}
 

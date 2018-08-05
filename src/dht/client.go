@@ -17,7 +17,7 @@ const (
 //actually a struct is here:
 // client, method, request, response
 
-func Dial(address string) (*rpc.Client, error) {
+func Dial(address string) (*rpc.Cerror error) {
 	if address == "" {
 		address = DefaultHost + ":" + DefaultPort
 	}
@@ -25,6 +25,9 @@ func Dial(address string) (*rpc.Client, error) {
 }
 
 func Call(address string, method string, request interface{}, response interface{}) error {
+	if address == ""{
+		return errors.New("Call Err: No address access")
+	}
 	client, err := rpc.DialHTTP("tcp", address)
 	if err != nil {
 		Logger.Printf("dial failed: %v", err)
