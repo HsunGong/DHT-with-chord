@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
 	"net/rpc"
 	"os"
 	"time"
@@ -19,7 +18,8 @@ var (
 func init() {
 	debug = false
 	var err error
-	logf, err := os.OpenFile("./logs.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0664)
+	// logf, err := os.OpenFile("./logs.txt", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0664)
+	logf, err := os.OpenFile("./logs.txt", os.O_CREATE|os.O_TRUNC|os.O_RDONLY, 0664)
 	if err != nil {
 		log.Panicln("Crash in Log file init")
 	}
@@ -63,6 +63,7 @@ func GetAddress() string {
 type Server struct {
 	node     *Node
 	listener net.Listener
+	server   *rpc.Server
 	// listening bool
 
 	// logfile *os.File
@@ -92,9 +93,9 @@ func (s *Server) Listen() error {
 	// return errors.New("Already listening")
 	// }
 
-	//actor--->>>>>>>>>>>>>>>>>>
-	rpc.Register(s.node) //using s.node as a object to do things by rpc
-	rpc.HandleHTTP()
+	s.server = rpc.NewServer()
+	s.server.Register(s.node) //using s.node as a object to do things by rpc
+	// rpc.HandleHTTP()
 
 	ler, err := net.Listen("tcp", ":"+s.node.Port) // address
 	if err != nil {
@@ -107,16 +108,15 @@ func (s *Server) Listen() error {
 
 	s.node.create()
 	s.listener = ler
-	// s.listening = true
+	s.node.Listening = true
 
-	go http.Serve(ler, nil) // goroutine
+	go s.server.Accept(s.listener) // goroutine
 	return nil
 }
 
 // avoid repete listening???
 // the port is server.node.port(not port outside)
 func (s *Server) Join(address string) error {
-
 	if err := s.Listen(); err != nil {
 		return err
 	}
@@ -125,17 +125,24 @@ func (s *Server) Join(address string) error {
 
 //for a server, it means unlisten
 func (s *Server) Quit() error {
+	if err := RPCAdapt(s.node); err != nil {
+		fmt.Println(err)
+	}
+
+	s.node.Listening = false
 	if err := s.listener.Close(); err != nil {
-		return err
+		fmt.Println(err)
 	}
 
 	if err := RPCAdapt(s.node); err != nil {
-		return err
+		fmt.Println(err)
 	}
 
-	if err := logf.Close(); err != nil {
-		fmt.Printf("logs Close: %v", err)
-	}
+	// if err := logf.Close(); err != nil {
+	// 	fmt.Printf("logs Close: %v", err)
+	// }
+
+	// fmt.Println("quit hard")
 	return nil
 }
 

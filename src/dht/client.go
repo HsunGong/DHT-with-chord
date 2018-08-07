@@ -17,7 +17,7 @@ const (
 //actually a struct is here:
 // client, method, request, response
 
-func Dial(address string) (*rpc.Cerror error) {
+func Dial(address string) (*rpc.Client, error) {
 	if address == "" {
 		address = DefaultHost + ":" + DefaultPort
 	}
@@ -25,15 +25,18 @@ func Dial(address string) (*rpc.Cerror error) {
 }
 
 func Call(address string, method string, request interface{}, response interface{}) error {
-	if address == ""{
-		return errors.New("Call Err: No address access")
+	if address == "" {
+		return errors.New("Call Err: No address")
 	}
-	client, err := rpc.DialHTTP("tcp", address)
+	// fmt.Println("Callssdaefasdsda", address)
+
+	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		Logger.Printf("dial failed: %v", err)
 		return err
 	}
 	defer client.Close()
+	// fmt.Println("Callssdaefasdsda", address)
 
 	//get call
 	err = client.Call(method, request, response)
@@ -83,25 +86,19 @@ func RPCFindSuccessor(addr string, id *big.Int) (string, error) {
 	return response, nil
 }
 
-func RPCPing(address string) error {
-	var response int
+func RPCPing(address string) (int, error) {
+	response := -1
 	if err := Call(address, "Node.Ping", 3, &response); err != nil {
-		return err
+		return response, err
 	}
 
 	fmt.Printf("Got response %d from Ping(3)\n", response)
-	return nil
+	return response, nil
 }
 
 func RPCAdapt(n *Node) error {
-	err := errors.New("Adapt Init")
-	i := 1
 	var response bool
-	for err != nil && i <= suSize {
-		// fmt.Println("aefnasdkjace a----------------------------------------------------------------------------------------->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-		err = Call(n.SuccessorTable[i], "Node.Adapt", n.Data, response)
-		i++
-	}
+	err := Call(n.successor, "Node.Adapt", n.Data, &response)
 
 	if err != nil || response != true {
 		return err
@@ -133,20 +130,23 @@ func RPCPut(address string, key string, val string) error {
 	}
 
 	fmt.Printf("Put [%v] stored %v at %s is %t\n", put_node, val, key, response)
+	if !response {
+		return errors.New("No put")
+	}
 	return nil
 }
-func RPCGet(address string, key string) error {
+func RPCGet(address string, key string) (string, error) {
 	get_node := find(address, key) // key's successor
 	if get_node == "" {
-		return errors.New("can't get address")
+		return "", errors.New("can't get address")
 	}
 
 	var response string
 	if err := Call(get_node, "Node.Get", key, &response); err != nil {
-		return err
+		return "", err
 	}
 	fmt.Printf("Get [%v] stored %v at %s\n", get_node, response, key)
-	return nil
+	return response, nil
 }
 
 func RPCDel(address string, key string) error {
@@ -165,7 +165,7 @@ func RPCDel(address string, key string) error {
 }
 func RPCGetSuccessors(address string, s []string) error {
 	var a int
-	if err := Call(address, "Node.GetSuccessors", a, s); err != nil {
+	if err := Call(address, "Node.GetSuccessors", a, &s); err != nil {
 		return err
 	}
 	return nil

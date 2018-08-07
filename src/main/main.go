@@ -1,15 +1,10 @@
 package main
 
 import (
-	"bufio"
 	"dht"
 	"errors"
-	"flag"
 	"fmt"
 	"log"
-	"os"
-	"strings"
-	"time"
 )
 
 const (
@@ -18,168 +13,103 @@ const (
 	MaxPara = 3
 )
 
+//func(args...string) error is the cmd funcs return by error
+//can't define as const
+
+// type cmd_function interface {
+// 	Quit(args ...string) error
+// 	Help(args ...string) error
+
+// 	Port(args ...string) error
+// 	Create(args ...string) error
+// 	Join(args ...string) error
+// 	Put(args ...string) error
+// 	Get(args ...string) error
+// 	Del(args ...string) error
+
+// 	Ping(args ...string) error
+// 	Dump(args ...string) error
+// }
+
+// var (
+// 	Cquit cmd_function
+// )
+
+// struct cmd:::
+
 //operator domains
-var (
+type command struct {
 	node   *dht.Node
 	server *dht.Server
-	port   = dht.DefaultPort
-	host   = dht.DefaultHost
+	port   string // dht.DefaultPort
+	host   string // dht.DefaultHost
+	line   []string
 
 	debug     bool
 	listening bool // or begin maybe
-)
+}
 
 //may change the port, once init(), cant change again, so dont use _init()
-func _init() {
-	node = dht.NewNode(port, debug)
-	server = dht.NewServer(node)
-}
-
-func getline() ([]string, error) {
-	//reader := bufio.NewReader(os.Stdin)
-	//返回结果包含'\n'？？
-	buffer := make([]string, 0, 10)
-	scanner := bufio.NewScanner(os.Stdin)
-
-	if scanner.Err() != nil {
-		fmt.Println("1")
-		return []string{}, scanner.Err()
-	}
-
-	//_, buffer, err := s
-	split := func(data []byte, atEOF bool) (int, []byte, error) {
-		return bufio.ScanLines(data, atEOF)
-	}
-	f := func(from string, to *[]string) {
-		tmp := strings.Split(from, " ")
-		for _, s := range tmp {
-			if s != "" {
-				*to = append(*to, s)
-				// fmt.Println(*to)
-			}
-		}
-	}
-
-	scanner.Split(split)
-	if scanner.Scan() {
-		f(scanner.Text(), &buffer)
-		// fmt.Println(buffer)
-		// for i, _ := range buffer {
-		// 	fmt.Printf("Order buffers '%s'\n", buffer[i])
-		// }
-	}
-	if len(buffer) == 0 {
-		return buffer, errors.New("empty line")
-	}
-	return buffer, nil //delete all ' ' in buffer
-}
-
-func main() {
-	flag.BoolVar(&debug, "debug", false, "start with debug function")
-	flag.Parse()
-	listening = false
-
-	t := time.Now()
-	fmt.Printf("@CopyRight(c) 2018 Xun. All rights reserved\n--At %v DHT begins--\n", t.Round(time.Second).Format(layout))
-
-	for {
-		line, err := getline()
-		if err != nil {
-			fmt.Println("Command format error, get help from command help")
-			continue
-		}
-
-		_, ok := cmd[line[0]]
-		if !ok {
-			fmt.Println("No such command, get help from command help")
-			continue
-		}
-
-		err = cmd[line[0]](line[1:]...)
-		if err != nil {
-			fmt.Println(err)
-		}
-	}
-}
-
-//func(args...string) error is the cmd funcs return by error
-//can't define as const
-var cmd = map[string]func(args ...string) error{
-	"quit": Quit,
-	"exit": Quit,
-	"help": Help,
-
-	"port":   Port,
-	"create": Create,
-	"join":   Join,
-
-	"put":    Put,
-	"get":    Get,
-	"delete": Del,
-
-	"ping": Ping,
-	// "test":     Test,
-	"dump":     Dump,
-	"dumpall":  Dump,
-	"dumpaddr": Dump,
+func (c *command) _init() {
+	c.node = dht.NewNode(c.port, c.debug)
+	c.server = dht.NewServer(c.node)
 }
 
 //port setting, before a server is init
-func Port(args ...string) error {
-	if node != nil || listening {
+func (c *command) Port(args ...string) error {
+	if c.node != nil || c.listening {
 		return errors.New("port can't set again after calling create or join")
 	}
 
 	if len(args) > 1 {
 		return errors.New("Too many arguments")
 	} else if len(args) == 0 {
-		port = dht.DefaultPort
+		c.port = dht.DefaultPort
 	} else {
-		port = args[0]
+		c.port = args[0]
 	}
 
-	fmt.Printf("Port set to %v\n", port)
+	fmt.Printf("Port set to %v\n", c.port)
 	return nil
 }
 
-func Create(args ...string) error {
+func (c *command) Create(args ...string) error {
 	if len(args) > 0 {
 		return errors.New("too many arguments")
 	}
-	if listening {
+	if c.listening {
 		return errors.New("already open server service")
 	} else {
-		listening = true
+		c.listening = true
 	}
 
-	_init()
-	server.Listen()
-	fmt.Println("Node(created) listening at ", node.Address)
-
+	c._init()
+	c.server.Listen()
+	fmt.Println("Node(created) listening at ", c.node.Address)
 	return nil
 }
 
 //begin to listen server.node.address+port;
 //node join at args[0](existing address)
-func Join(args ...string) error {
+func (c *command) Join(args ...string) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
-	if listening {
+	if c.listening {
 		return errors.New("already open server service")
 	} else {
-		listening = true
+		c.listening = true
 	}
 
-	_init()
+	c._init()
 	addres := dht.DefaultHost + ":" + dht.DefaultPort
 	if len(args) == 1 {
 		addres = args[0]
 	}
 
-	err := server.Join(addres)
+	err := c.server.Join(addres)
 	if err != nil {
-		listening = false
+		c.listening = false
 		log.Panicf("Join error %v", err)
 		// return err
 	}
@@ -187,59 +117,116 @@ func Join(args ...string) error {
 	return nil
 }
 
-func Quit(args ...string) error {
+func (c *command) Quit(args ...string) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
-	if !listening {
+	if !c.listening {
 		return errors.New("No server service")
 	} else {
-		listening = false
+		c.listening = false
 	}
 
-	if server == nil {
+	if c.server == nil {
 		fmt.Println("Pragram end")
-		os.Exit(1)
+		return nil
 	}
 
-	if err := server.Quit(); err != nil {
+	if err := c.server.Quit(); err != nil {
 		fmt.Printf("Server Quit: %v\n", err)
 	} else {
 		fmt.Println("Program end")
 	}
-	os.Exit(1)
+	// os.Exit(1)
 	return nil
 }
 
-func Dump(args ...string) error {
+func (c *command) Dump(args ...string) error {
 	if len(args) != 0 {
 		return errors.New("Too many arguments")
 	}
-	if !listening {
+	if !c.listening {
 		return errors.New("No server Service")
 	}
 
-	fmt.Println(server.Debug())
+	fmt.Println(c.server.Debug())
 	return nil
 }
 
 //Debug func----using dial
 //fake ping
 //test if args[0](address) is listening
-func Ping(args ...string) error {
+func (c *command) Ping(args ...string) error {
 	if len(args) == 0 {
 		return errors.New("too few arguments")
 	} else if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
-	if !listening {
+	if !c.listening {
 		return errors.New("No Server Service")
 	}
 
-	return dht.RPCPing(args[0])
+	if response, err := dht.RPCPing(args[0]); err != nil {
+		return err
+	} else {
+		fmt.Printf("Got response %d from Ping(3)\n", response)
+		fmt.Fprintln(&buffer, response) //???
+		return nil
+	}
+
 }
 
-func Help(args ...string) error {
+/// put key value
+func (c *command) Put(args ...string) error {
+	if len(args) != 2 {
+		return errors.New("Arguments number error")
+	}
+
+	if !c.listening {
+		return errors.New("No Server Service")
+	}
+
+	if err := dht.RPCPut(c.node.Address, args[0], args[1]); err != nil {
+		fmt.Fprintln(&buffer, false)
+		return err
+	} else {
+		fmt.Fprintln(&buffer, true)
+		return nil
+	}
+}
+
+func (c *command) Get(args ...string) error {
+	if len(args) != 1 {
+		return errors.New("Arguments number error")
+	}
+	if !c.listening {
+		return errors.New("No Server Service")
+	}
+
+	response, err := dht.RPCGet(c.node.Address, args[0])
+	fmt.Fprintln(&buffer, response)
+
+	return err
+}
+
+func (c *command) Del(args ...string) error {
+	if len(args) != 1 {
+		return errors.New("Arguments number error")
+	}
+	if !c.listening {
+		return errors.New("No Server Service")
+	}
+
+	if err := dht.RPCDel(c.node.Address, args[0]); err != nil {
+		fmt.Fprintln(&buffer, false)
+		return err
+	} else {
+		fmt.Fprintln(&buffer, true)
+		return nil
+	}
+}
+
+func (c *command) Help(args ...string) error {
 	var err error
 	if len(args) > 1 {
 		err = errors.New("Too many arguments. Get help from command help")
@@ -411,35 +398,3 @@ walk around the ring, dumping all information about every peer in the ring in cl
 
 // 	return nil
 // }
-
-/// put key value
-func Put(args ...string) error {
-	if len(args) != 2 {
-		return errors.New("Arguments number error")
-	}
-
-	if !listening {
-		return errors.New("No Server Service")
-	}
-
-	return dht.RPCPut(node.Address, args[0], args[1])
-}
-func Get(args ...string) error {
-	if len(args) != 1 {
-		return errors.New("Arguments number error")
-	}
-	if !listening {
-		return errors.New("No Server Service")
-	}
-
-	return dht.RPCGet(node.Address, args[0])
-}
-func Del(args ...string) error {
-	if len(args) != 1 {
-		return errors.New("Arguments number error")
-	}
-	if !listening {
-		return errors.New("No Server Service")
-	}
-	return dht.RPCDel(node.Address, args[0])
-}

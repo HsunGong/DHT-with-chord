@@ -11,7 +11,7 @@ import (
 const (
 	m           = 160 // 0-base indexing
 	suSize      = 3
-	refreshTime = 1000 * time.Millisecond
+	refreshTime = 500 * time.Millisecond
 )
 
 // Node of a virtual machine-- each resource is in Data
@@ -29,7 +29,8 @@ type Node struct {
 	FingerTable [m + 1]string
 	next        int
 
-	debug bool // if true, is debugging
+	Listening bool
+	debug     bool // if true, is debugging
 }
 
 type KVP struct {
@@ -60,6 +61,7 @@ func (n *Node) create() {
 		n.SuccessorTable[i] = n.Address
 	}
 
+	go n.checkSurvival()
 	go n.checkPredecessorPeriod()
 	go n.stabilizePeriod()
 	go n.fixFingerTablePeriod()
@@ -85,6 +87,7 @@ func (n *Node) join(address string) error {
 		fmt.Println("Join but Notify err")
 	}
 	n.stabilize()
+
 	return nil
 }
 
@@ -142,9 +145,10 @@ func (n *Node) findFingerTable(id *big.Int) string {
 // or a better node to continue the search with
 //!!!!!maybe can repete with some node(in fixfinger)
 func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
-	// fmt.Println("Find successor")
+	// fmt.Println(Hash(n.Address), id, n.Address)
 	if InclusiveBetween(id, Hash(n.Address), Hash(n.successor)) {
 		*successor = n.successor
+
 		return nil
 	}
 
@@ -158,6 +162,7 @@ func (n *Node) FindSuccessor(id *big.Int, successor *string) error {
 	}
 
 	//wont loop if successor is exists
+
 	nextAddr := n.findFingerTable(id)
 	if nextAddr == "" {
 		return errors.New("findFingerTable Err")
@@ -231,7 +236,7 @@ func (n *Node) fixFingerTable() {
 
 //Call periodly, verfiy succcessor, tell the successor of n
 //only check successor 1
-func (n *Node) stabilize() error {
+func (n *Node) stabilize() {
 	pre_i, err := RPCGetPredecessor(n.successor)
 
 	// FIND A PREDECESSOR
@@ -277,42 +282,64 @@ SKIP:
 	}
 }
 
-//using 1 func-- 1 tick strategy, can not sync with(using frequency maybe different)
-func (n *Node) stabilizePeriod() error {
+func (n *Node) checkSurvival() {
 	ticker := time.Tick(refreshTime)
 	for {
+		if !n.Listening {
+			return
+		}
 		select { // if <-ticker == time.(0)
 		case <-ticker:
 			// fmt.Println("check stablize")
-			if err := n.stabilize(); err != nil {
-				// return err
-				fmt.Printf("stabilize err %v\n", err)
+			response := 0
+			if err := Call(n.Address, "Node.Ping", 51, &response); err != nil {
+				n.Listening = false
+				return
 			}
 		}
 	}
 
-	return nil
 }
-func (n *Node) checkPredecessorPeriod() error {
+
+//using 1 func-- 1 tick strategy, can not sync with(using frequency maybe different)
+func (n *Node) stabilizePeriod() {
 	ticker := time.Tick(refreshTime)
 	for {
+		if !n.Listening {
+			return
+		}
+		select { // if <-ticker == time.(0)
+		case <-ticker:
+			// fmt.Println("check stablize")
+			n.stabilize()
+		}
+	}
+
+}
+func (n *Node) checkPredecessorPeriod() {
+	ticker := time.Tick(refreshTime)
+	for {
+		if !n.Listening {
+			return
+		}
 		select { // if <-ticker == time.(0)
 		case <-ticker:
 			// fmt.Println("check Pre")
 			n.checkPredecessor()
 		}
 	}
-	return nil
 }
-func (n *Node) fixFingerTablePeriod() error {
+func (n *Node) fixFingerTablePeriod() {
 	ticker := time.Tick(refreshTime)
 	for {
+		if !n.Listening {
+			return
+		}
 		select { // if <-ticker == time.(0)
 		case <-ticker:
 			n.fixFingerTable()
 		}
 	}
-
 }
 
 func (n *Node) Put(args KVP, success *bool) error {
@@ -336,7 +363,9 @@ func (n *Node) Del(key string, success *bool) error {
 }
 
 func (n *Node) Adapt(datas map[string]string, success *bool) error {
-
+	for k, v := range datas {
+		n.Data[k] = v
+	}
 	*success = true
 	return nil
 }
