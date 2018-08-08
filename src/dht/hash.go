@@ -70,6 +70,7 @@ func ExclusiveBetween(id *big.Int, left *big.Int, right *big.Int) bool {
 
 	if right.Cmp(left) == 1 {
 		//right > left
+		// fmt.Println(left, "\n", right)
 		return id.Cmp(left) == 1 && right.Cmp(id) == 1
 	} else {
 		return right.Cmp(id) == 1 || id.Cmp(left) == 1

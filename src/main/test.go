@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -31,6 +32,22 @@ type errType struct {
 	// cnt  int //data-cnt
 }
 
+type sl []*big.Int
+
+// func main() {
+// 	x := make(sl, 30, 30)
+// 	j := 0
+// 	for i := 0; i <= 11; i++ {
+// 		x[j] = dht.Hash("10.163.174.211:800" + strconv.FormatInt(int64(i), 10))
+// 		j++
+// 		fmt.Printf("%d\t%d\n", i, x[j])
+// 		x[j] = dht.Hash(strconv.FormatInt(int64(i), 10))
+// 		fmt.Printf("%d:\t%d\n", i, x[j])
+// 		j++
+// 	}
+// 	// sort.Sort(x)
+// }
+
 func main() {
 	var ports [105]string
 	datas := map[string]string{}
@@ -44,7 +61,7 @@ func main() {
 	blue := color.New(color.FgBlue)
 
 	for i := 0; i <= 100; i++ {
-		ports[i] = strconv.FormatInt(int64(i+8000), 10)
+		ports[i] = strconv.FormatInt(int64(i+6000), 10)
 	}
 	for i := 0; i <= 2000; i++ {
 		datas[strconv.FormatInt(int64(i), 10)] = strconv.FormatInt(int64(i), 10)
@@ -60,30 +77,40 @@ func main() {
 
 	var flag bool
 	errs := make([]errType, 0, 300)
-	for i := 1; i <= 2; i++ {
+	// fmt.Printf("%d\n%d\n%d", dht.Hash("10.163.174.211:8005"), dht.Hash("2"), dht.Hash("10.163.174.211:8010"))
+	for i := 1; i <= 5; i++ {
 		for j := 0; j < 5; j++ {
 			cnt++
 			cur = &Cmd[cnt]
 			cur.Port(ports[cnt])
+			// if ports[cnt] == "8006" {
+			// 	red.Println("here it is")
+			// 	for j := 0; j <= cnt; j++ {
+			// 		Cmd[j].Dump()
+			// 	}
 
+			// }
 			if err := cur.Join(Cmd[0].node.Address); err != nil {
 				fmt.Println(err)
 			}
+
 			blue.Println("Join  ", cnt)
-			time.Sleep(300 * time.Millisecond) // 1000+
+			time.Sleep(1000 * time.Millisecond) // 1000+
 		}
-		time.Sleep(2000 * time.Millisecond) // 5000+
+		time.Sleep(4000 * time.Millisecond) // 5000+
 
 		//put
 		flag = true
 		errs = errs[0:0]
 		for j := 0; j < 30; j++ {
-			c := r.Int() % (cnt + 1)
+			// c := r.Int() % (cnt + 1)
+			c := 0
 			d_cnt++
 			s := strconv.FormatInt(int64(d_cnt), 10)
 			// Cmd[c].Dump()
 			Cmd[c].Put(s, datas[s])
 			if ans, _ := buffer.ReadString('\n'); ans != "true\n" {
+				fmt.Printf("%s is %d\n", s, dht.Hash(s))
 				errs = append(errs, errType{j, Cmd[c].node.Address, s, datas[s]})
 				flag = false
 			}
@@ -101,12 +128,14 @@ func main() {
 		flag = true
 		errs = errs[0:0]
 		for j := 0; j < 20; j++ {
-			c := r.Int() % (cnt + 1)
+			// c := r.Int() % (cnt + 1)
+			c := 0
 			da := r.Int() % d_cnt
 			s := strconv.FormatInt(int64(da), 10)
 			Cmd[c].Get(s)
 			if ans, _ := buffer.ReadString('\n'); ans != datas[s]+"\n" {
-				fmt.Printf("Del(%s) hash:%d\n", s, dht.Hash(s))
+				fmt.Printf("Get(%s) hash:%d\n", s, dht.Hash(s))
+				// fmt.Printf("%s is %d\n", s, dht.Hash(s))
 				errs = append(errs, errType{j, Cmd[c].node.Address, s, datas[s]})
 				flag = false
 			}
@@ -118,17 +147,18 @@ func main() {
 			for _, j := range errs {
 				red.Println(j)
 			}
-			for j := 0; j <= cnt; j++ {
-				Cmd[j].Dump()
-			}
-			fmt.Println("\n")
+			// for j := 0; j <= cnt; j++ {
+			// 	Cmd[j].Dump()
+			// }
+			// fmt.Println("\n")
 		}
 
 		//del
 		flag = true
 		errs = errs[0:0]
 		for j := 0; j < 15; j++ {
-			c := r.Int() % (cnt + 1)
+			// c := r.Int() % (cnt + 1)
+			c := 0
 			s := strconv.FormatInt(int64(d_cnt), 10)
 			d_cnt--
 			Cmd[c].Del(s)
@@ -147,22 +177,22 @@ func main() {
 				fmt.Println("Get hash:", j.k)
 				red.Println(j)
 			}
-			for j := 0; j <= cnt; j++ {
-				Cmd[j].Dump()
-			}
+			// for j := 0; j <= cnt; j++ {
+			// 	Cmd[j].Dump()
+			// }
 		}
 
-		// for j := 0; j < 2; j++ {
-		// 	cur = &Cmd[cnt]
-		// 	cnt--
-		// 	if err := cur.Quit(); err != nil {
-		// 		fmt.Println(err)
-		// 	}
-		// 	blue.Println("Quit ", cnt+1)
-		// 	time.Sleep(300 * time.Millisecond) // 1000+
-		// }
-		// time.Sleep(2000 * time.Millisecond)
-		// Cmd[4].Dump()
+		for j := 0; j < 2; j++ {
+			cur = &Cmd[cnt]
+			cnt--
+			if err := cur.Quit(); err != nil {
+				fmt.Println(err)
+			}
+			blue.Println("Quit ", cnt+1)
+			time.Sleep(1000 * time.Millisecond) // 1000+
+		}
+		time.Sleep(4000 * time.Millisecond)
+		// Cmd[3].Dump()
 	}
 	green.Println(cnt, d_cnt)
 

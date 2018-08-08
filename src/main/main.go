@@ -4,7 +4,6 @@ import (
 	"dht"
 	"errors"
 	"fmt"
-	"log"
 )
 
 const (
@@ -110,7 +109,7 @@ func (c *command) Join(args ...string) error {
 	err := c.server.Join(addres)
 	if err != nil {
 		c.listening = false
-		log.Panicf("Join error %v", err)
+		// log.Panicf("Join error %v", err)
 		// return err
 	}
 	// fmt.Println("Joined at ", addres)

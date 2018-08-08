@@ -125,16 +125,10 @@ func (s *Server) Join(address string) error {
 
 //for a server, it means unlisten
 func (s *Server) Quit() error {
-	if err := RPCAdapt(s.node); err != nil {
-		fmt.Println(err)
-	}
+	s.node.merge()
 
 	s.node.Listening = false
 	if err := s.listener.Close(); err != nil {
-		fmt.Println(err)
-	}
-
-	if err := RPCAdapt(s.node); err != nil {
 		fmt.Println(err)
 	}
 
@@ -155,11 +149,10 @@ func (s *Server) Debug() string {
 
 	return fmt.Sprintf(`
 ID: %v
-Listening: %v
-Address: %v
+Listening: %v Address: %v
 Data: %v
 Successors: %v
-Successor: %v
 Predecessor: %v
-`, Hash(s.node.Address), s.IsListening(), s.node.Address, s.node.Data, s.node.SuccessorTable, s.node.successor, s.node.Predecessor)
+Fingers: %v
+`, Hash(s.node.Address), s.IsListening(), s.node.Address, s.node.Data, s.node.SuccessorTable, s.node.Predecessor, s.node.FingerTable)
 }

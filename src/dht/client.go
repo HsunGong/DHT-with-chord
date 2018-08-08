@@ -17,31 +17,24 @@ const (
 //actually a struct is here:
 // client, method, request, response
 
-func Dial(address string) (*rpc.Client, error) {
-	if address == "" {
-		address = DefaultHost + ":" + DefaultPort
-	}
-	return rpc.DialHTTP("tcp", address)
-}
-
 func Call(address string, method string, request interface{}, response interface{}) error {
 	if address == "" {
 		return errors.New("Call Err: No address")
 	}
-	// fmt.Println("Callssdaefasdsda", address)
 
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
-		Logger.Printf("dial failed: %v", err)
+		// Logger.Printf("dial failed: %v", err)
+		fmt.Printf("Dial: %v\n", err)
 		return err
 	}
 	defer client.Close()
-	// fmt.Println("Callssdaefasdsda", address)
 
 	//get call
 	err = client.Call(method, request, response)
 	if err != nil {
-		Logger.Printf("call error: %v", err)
+		// Logger.Printf("call error: %v", err)
+		fmt.Printf("Call: %v\n", err)
 		return err
 	}
 
@@ -73,6 +66,7 @@ func RPCGetPredecessor(addr string) (string, error) {
 
 	return response, nil
 }
+
 func RPCFindSuccessor(addr string, id *big.Int) (string, error) {
 	if addr == "" {
 		return "", errors.New("RPCFindSuccessor: rpc address is empty")
@@ -94,16 +88,6 @@ func RPCPing(address string) (int, error) {
 
 	// fmt.Printf("Got response %d from Ping(3)\n", response)
 	return response, nil
-}
-
-func RPCAdapt(n *Node) error {
-	var response bool
-	err := Call(n.successor, "Node.Adapt", n.Data, &response)
-
-	if err != nil || response != true {
-		return err
-	}
-	return nil
 }
 
 //if return "", cant do the function anymore, return errors till main()
@@ -129,7 +113,7 @@ func RPCPut(address string, key string, val string) error {
 		return err
 	}
 
-	// fmt.Printf("Put [%v] stored %v at %s is %t\n", put_node, val, key, response)
+	// fmt.Printf("Put %s, %s in [%v]\n", val, key, put_node)
 	if !response {
 		return errors.New("No put")
 	}
@@ -167,6 +151,7 @@ func RPCDel(address string, key string) (bool, error) {
 	}
 	return response, nil
 }
+
 func RPCGetSuccessors(address string, s []string) error {
 	var a int
 	if err := Call(address, "Node.GetSuccessors", a, &s); err != nil {
