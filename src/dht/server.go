@@ -161,6 +161,5 @@ Data: %v
 Successors: %v
 Successor: %v
 Predecessor: %v
-Fingers: %v
-`, Hash(s.node.Address), s.IsListening(), s.node.Address, s.node.Data, s.node.SuccessorTable, s.node.successor, s.node.Predecessor, s.node.FingerTable)
+`, Hash(s.node.Address), s.IsListening(), s.node.Address, s.node.Data, s.node.SuccessorTable, s.node.successor, s.node.Predecessor)
 }

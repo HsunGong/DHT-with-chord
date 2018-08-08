@@ -92,7 +92,7 @@ func RPCPing(address string) (int, error) {
 		return response, err
 	}
 
-	fmt.Printf("Got response %d from Ping(3)\n", response)
+	// fmt.Printf("Got response %d from Ping(3)\n", response)
 	return response, nil
 }
 
@@ -129,7 +129,7 @@ func RPCPut(address string, key string, val string) error {
 		return err
 	}
 
-	fmt.Printf("Put [%v] stored %v at %s is %t\n", put_node, val, key, response)
+	// fmt.Printf("Put [%v] stored %v at %s is %t\n", put_node, val, key, response)
 	if !response {
 		return errors.New("No put")
 	}
@@ -145,23 +145,27 @@ func RPCGet(address string, key string) (string, error) {
 	if err := Call(get_node, "Node.Get", key, &response); err != nil {
 		return "", err
 	}
-	fmt.Printf("Get [%v] stored %v at %s\n", get_node, response, key)
+	if response == "" {
+		fmt.Printf("Get [%v] stored %v at %s\n", get_node, response, key)
+	}
 	return response, nil
 }
 
-func RPCDel(address string, key string) error {
+func RPCDel(address string, key string) (bool, error) {
 	del_node := find(address, key) // key's successor
 	if del_node == "" {
-		return errors.New("can't get address")
+		return false, errors.New("can't get address")
 	}
 
 	var response bool
 	if err := Call(del_node, "Node.Del", key, &response); err != nil {
-		return err
+		return false, err
 	}
 
-	fmt.Printf("Del [%v] KVPair(%v) is %t\n", del_node, key, response)
-	return nil
+	if !response {
+		fmt.Printf("Del [%v] KVPair(%v) is %t\n", del_node, key, response)
+	}
+	return response, nil
 }
 func RPCGetSuccessors(address string, s []string) error {
 	var a int

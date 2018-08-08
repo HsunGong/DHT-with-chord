@@ -3,12 +3,16 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"dht"
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/color"
 )
 
 var (
@@ -19,48 +23,148 @@ func init() {
 
 }
 
+type errType struct {
+	No   int    // order in the loop
+	node string // join node
+	k    string
+	v    string
+	// cnt  int //data-cnt
+}
+
 func main() {
 	var ports [105]string
-	data := map[string]string{}
+	datas := map[string]string{}
 	// var Cmd []command
-	Cmd := make([]command, 50, 50)
-	// r := rand.New(rand.NewSource(0))
+	Cmd := make([]command, 100, 100)
+
+	r := rand.New(rand.NewSource(0))
+	// r := rand.New(rand.NewSource(time.Now().Unix()))
+	green := color.New(color.FgGreen) //.Add(color.Underline)
+	red := color.New(color.FgRed)
+	blue := color.New(color.FgBlue)
 
 	for i := 0; i <= 100; i++ {
 		ports[i] = strconv.FormatInt(int64(i+8000), 10)
 	}
-	for i := 0; i <= 1500; i++ {
-		data[strconv.FormatInt(int64(i), 10)] = strconv.FormatInt(int64(i), 10)
+	for i := 0; i <= 2000; i++ {
+		datas[strconv.FormatInt(int64(i), 10)] = strconv.FormatInt(int64(i), 10)
 	}
 
-	cnt := 0
+	cnt := -1 //stack top of porgram
+	cnt++
+	d_cnt := -1 //stack top of data
 	cur := &Cmd[cnt]
 	cur.Port(ports[0])
-	cnt++
+
 	cur.Create()
 
-	for i := 0; i < 5; i++ {
-		for j := 0; j < 4; j++ {
+	var flag bool
+	errs := make([]errType, 0, 300)
+	for i := 1; i <= 2; i++ {
+		for j := 0; j < 5; j++ {
+			cnt++
 			cur = &Cmd[cnt]
 			cur.Port(ports[cnt])
-			cnt++
+
 			if err := cur.Join(Cmd[0].node.Address); err != nil {
 				fmt.Println(err)
 			}
-			fmt.Println("Joining  ", j)
-			time.Sleep(time.Second)
+			blue.Println("Join  ", cnt)
+			time.Sleep(300 * time.Millisecond) // 1000+
+		}
+		time.Sleep(2000 * time.Millisecond) // 5000+
+
+		//put
+		flag = true
+		errs = errs[0:0]
+		for j := 0; j < 30; j++ {
+			c := r.Int() % (cnt + 1)
+			d_cnt++
+			s := strconv.FormatInt(int64(d_cnt), 10)
+			// Cmd[c].Dump()
+			Cmd[c].Put(s, datas[s])
+			if ans, _ := buffer.ReadString('\n'); ans != "true\n" {
+				errs = append(errs, errType{j, Cmd[c].node.Address, s, datas[s]})
+				flag = false
+			}
+		}
+		if flag {
+			green.Println("Pass First ", i)
+		} else {
+			red.Println("Errors(1) are:")
+			for _, j := range errs {
+				red.Println(j)
+			}
 		}
 
-		time.Sleep(3 * time.Second)
-		for j := 0; j < 2; j++ {
-			cur = &Cmd[cnt]
-			cnt--
-			if err := cur.Quit(); err != nil {
-				fmt.Println(err)
+		//get
+		flag = true
+		errs = errs[0:0]
+		for j := 0; j < 20; j++ {
+			c := r.Int() % (cnt + 1)
+			da := r.Int() % d_cnt
+			s := strconv.FormatInt(int64(da), 10)
+			Cmd[c].Get(s)
+			if ans, _ := buffer.ReadString('\n'); ans != datas[s]+"\n" {
+				fmt.Printf("Del(%s) hash:%d\n", s, dht.Hash(s))
+				errs = append(errs, errType{j, Cmd[c].node.Address, s, datas[s]})
+				flag = false
 			}
-			time.Sleep(2 * time.Second)
 		}
+		if flag {
+			green.Println("Pass Second ", i)
+		} else {
+			red.Println("Errors(2) are:")
+			for _, j := range errs {
+				red.Println(j)
+			}
+			for j := 0; j <= cnt; j++ {
+				Cmd[j].Dump()
+			}
+			fmt.Println("\n")
+		}
+
+		//del
+		flag = true
+		errs = errs[0:0]
+		for j := 0; j < 15; j++ {
+			c := r.Int() % (cnt + 1)
+			s := strconv.FormatInt(int64(d_cnt), 10)
+			d_cnt--
+			Cmd[c].Del(s)
+			// delete()
+			if ans, _ := buffer.ReadString('\n'); ans != "true\n" {
+				fmt.Printf("Del(%s) hash:%d\n", s, dht.Hash(s))
+				errs = append(errs, errType{j, Cmd[c].node.Address, s, datas[s]})
+				flag = false
+			}
+		}
+		if flag {
+			green.Println("Pass Third ", i)
+		} else {
+			red.Println("Errors(3) are:")
+			for _, j := range errs {
+				fmt.Println("Get hash:", j.k)
+				red.Println(j)
+			}
+			for j := 0; j <= cnt; j++ {
+				Cmd[j].Dump()
+			}
+		}
+
+		// for j := 0; j < 2; j++ {
+		// 	cur = &Cmd[cnt]
+		// 	cnt--
+		// 	if err := cur.Quit(); err != nil {
+		// 		fmt.Println(err)
+		// 	}
+		// 	blue.Println("Quit ", cnt+1)
+		// 	time.Sleep(300 * time.Millisecond) // 1000+
+		// }
+		// time.Sleep(2000 * time.Millisecond)
+		// Cmd[4].Dump()
 	}
+	green.Println(cnt, d_cnt)
 
 }
 
@@ -126,6 +230,16 @@ func getline(reader io.Reader) ([]string, error) {
 // 		} else if line[0] == "join" {
 // 			c.Join(line[1:]...)
 // 			cnt++
+// 		} else if line[0] == "put" {
+// 			c.Put(line[1:]...)
+// 		} else if line[0] == "get" {
+// 			c.Get(line[1:]...)
+// 			var s string
+// 			fmt.Fscanln(&buffer, s)
+// 			fmt.Println(s)
+// 		} else if line[0] == "del" {
+// 			c.Del(line[1:]...)
 // 		}
+
 // 	}
 // }

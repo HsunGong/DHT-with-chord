@@ -69,7 +69,7 @@ func (c *command) Port(args ...string) error {
 		c.port = args[0]
 	}
 
-	fmt.Printf("Port set to %v\n", c.port)
+	// fmt.Printf("Port set to %v\n", c.port)
 	return nil
 }
 
@@ -85,7 +85,7 @@ func (c *command) Create(args ...string) error {
 
 	c._init()
 	c.server.Listen()
-	fmt.Println("Node(created) listening at ", c.node.Address)
+	// fmt.Println("Node(created) listening at ", c.node.Address)
 	return nil
 }
 
@@ -113,7 +113,7 @@ func (c *command) Join(args ...string) error {
 		log.Panicf("Join error %v", err)
 		// return err
 	}
-	fmt.Println("Joined at ", addres)
+	// fmt.Println("Joined at ", addres)
 	return nil
 }
 
@@ -128,14 +128,14 @@ func (c *command) Quit(args ...string) error {
 	}
 
 	if c.server == nil {
-		fmt.Println("Pragram end")
+		// fmt.Println("Pragram end")
 		return nil
 	}
 
 	if err := c.server.Quit(); err != nil {
 		fmt.Printf("Server Quit: %v\n", err)
 	} else {
-		fmt.Println("Program end")
+		// fmt.Println("Program end")
 	}
 	// os.Exit(1)
 	return nil
@@ -217,11 +217,11 @@ func (c *command) Del(args ...string) error {
 		return errors.New("No Server Service")
 	}
 
-	if err := dht.RPCDel(c.node.Address, args[0]); err != nil {
-		fmt.Fprintln(&buffer, false)
+	if resp, err := dht.RPCDel(c.node.Address, args[0]); err != nil {
+		fmt.Fprintln(&buffer, resp)
 		return err
 	} else {
-		fmt.Fprintln(&buffer, true)
+		fmt.Fprintln(&buffer, resp)
 		return nil
 	}
 }
