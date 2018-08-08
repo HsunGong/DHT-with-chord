@@ -266,31 +266,31 @@ func (n *Node) checkPredecessor() {
 //n.next is the index of finger to fix
 func (n *Node) fixFingerTable() {
 	var response string
-	// for true {
-	n.next++
-	if n.next >= m {
-		n.next = -1
-		return
-	}
-	id := fingerEntry(Hash(n.Address), n.next)
+	for true {
+		n.next++
+		if n.next >= m {
+			n.next = -1
+			return
+		}
+		id := fingerEntry(Hash(n.Address), n.next)
 
-	// if response == "" {
-	if err := n.FindSuccessor(id, &response); err != nil || response == "" {
-		fmt.Printf("fixFingertable err at: %v\n", err)
-		// fmt.Println(n.next, n.Address, response)
-		return
-	}
-	// color.Yellow("Successor")
-	// }
+		if response == "" {
+			if err := n.FindSuccessor(id, &response); err != nil || response == "" {
+				fmt.Printf("fixFingertable err at: %v\n", err)
+				// fmt.Println(n.next, n.Address, response)
+				return
+			}
+			// color.Yellow("Successor")
+		}
 
-	// if InclusiveBetween(id, Hash(n.Address), Hash(response)) {
-	n.FingerTable[n.next] = response
-	// } else {
-	// 	n.next--
-	// 	return
-	// }
-	// os.Exit(1)
-	// }
+		if InclusiveBetween(id, Hash(n.Address), Hash(response)) {
+			n.FingerTable[n.next] = response
+		} else {
+			n.next--
+			return
+		}
+		// os.Exit(1)
+	}
 }
 
 //Call periodly, verfiy succcessor, tell the successor of n
