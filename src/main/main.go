@@ -4,6 +4,8 @@ import (
 	"dht"
 	"errors"
 	"fmt"
+	"math/rand"
+	"strconv"
 )
 
 const (
@@ -12,31 +14,22 @@ const (
 	MaxPara = 3
 )
 
-//func(args...string) error is the cmd funcs return by error
-//can't define as const
+var (
+	TOO_MANY_ARGUMENTS error
+	FEW_ARGUMENTS      error
+	ARGUMENTS_NUM      error
+	NO_SERVICE         error
+	IN_SERVICE         error
+)
 
-// type cmd_function interface {
-// 	Quit(args ...string) error
-// 	Help(args ...string) error
+func init() {
+	TOO_MANY_ARGUMENTS = errors.New("too many arguments")
+	FEW_ARGUMENTS = errors.New("few arguments")
+	NO_SERVICE = errors.New("No service")
+	IN_SERVICE = errors.New("Already in service")
+	ARGUMENTS_NUM = errors.New("arguments number error")
+}
 
-// 	Port(args ...string) error
-// 	Create(args ...string) error
-// 	Join(args ...string) error
-// 	Put(args ...string) error
-// 	Get(args ...string) error
-// 	Del(args ...string) error
-
-// 	Ping(args ...string) error
-// 	Dump(args ...string) error
-// }
-
-// var (
-// 	Cquit cmd_function
-// )
-
-// struct cmd:::
-
-//operator domains
 type command struct {
 	node   *dht.Node
 	server *dht.Server
@@ -50,6 +43,9 @@ type command struct {
 
 //may change the port, once init(), cant change again, so dont use _init()
 func (c *command) _init() {
+	if c.port == "" {
+		c.port = dht.DefaultPort
+	}
 	c.node = dht.NewNode(c.port, c.debug)
 	c.server = dht.NewServer(c.node)
 }
@@ -61,30 +57,30 @@ func (c *command) Port(args ...string) error {
 	}
 
 	if len(args) > 1 {
-		return errors.New("Too many arguments")
+		return TOO_MANY_ARGUMENTS
 	} else if len(args) == 0 {
 		c.port = dht.DefaultPort
 	} else {
 		c.port = args[0]
 	}
 
-	// fmt.Printf("Port set to %v\n", c.port)
+	fmt.Printf("Port set to %v\n", c.port)
 	return nil
 }
 
 func (c *command) Create(args ...string) error {
 	if len(args) > 0 {
-		return errors.New("too many arguments")
+		return TOO_MANY_ARGUMENTS
 	}
 	if c.listening {
-		return errors.New("already open server service")
+		return IN_SERVICE
 	} else {
 		c.listening = true
 	}
 
 	c._init()
 	c.server.Listen()
-	// fmt.Println("Node(created) listening at ", c.node.Address)
+	fmt.Println("Node(created) listening at ", c.node.Address)
 	return nil
 }
 
@@ -92,10 +88,10 @@ func (c *command) Create(args ...string) error {
 //node join at args[0](existing address)
 func (c *command) Join(args ...string) error {
 	if len(args) > 1 {
-		return errors.New("too many arguments")
+		return TOO_MANY_ARGUMENTS
 	}
 	if c.listening {
-		return errors.New("already open server service")
+		return IN_SERVICE
 	} else {
 		c.listening = true
 	}
@@ -118,10 +114,10 @@ func (c *command) Join(args ...string) error {
 
 func (c *command) Quit(args ...string) error {
 	if len(args) > 1 {
-		return errors.New("too many arguments")
+		return TOO_MANY_ARGUMENTS
 	}
 	if !c.listening {
-		return errors.New("No server service")
+		return NO_SERVICE
 	} else {
 		c.listening = false
 	}
@@ -142,10 +138,10 @@ func (c *command) Quit(args ...string) error {
 
 func (c *command) Dump(args ...string) error {
 	if len(args) != 0 {
-		return errors.New("Too many arguments")
+		return TOO_MANY_ARGUMENTS
 	}
 	if !c.listening {
-		return errors.New("No server Service")
+		return NO_SERVICE
 	}
 
 	fmt.Println(c.server.Debug())
@@ -157,12 +153,12 @@ func (c *command) Dump(args ...string) error {
 //test if args[0](address) is listening
 func (c *command) Ping(args ...string) error {
 	if len(args) == 0 {
-		return errors.New("too few arguments")
+		return FEW_ARGUMENTS
 	} else if len(args) > 1 {
-		return errors.New("too many arguments")
+		return TOO_MANY_ARGUMENTS
 	}
 	if !c.listening {
-		return errors.New("No Server Service")
+		return NO_SERVICE
 	}
 
 	if response, err := dht.RPCPing(args[0]); err != nil {
@@ -178,11 +174,11 @@ func (c *command) Ping(args ...string) error {
 /// put key value
 func (c *command) Put(args ...string) error {
 	if len(args) != 2 {
-		return errors.New("Arguments number error")
+		return errors.New(TOO_MANY_ARGUMENTS.Error() + FEW_ARGUMENTS.Error())
 	}
 
 	if !c.listening {
-		return errors.New("No Server Service")
+		return NO_SERVICE
 	}
 
 	if err := dht.RPCPut(c.node.Address, args[0], args[1]); err != nil {
@@ -196,10 +192,10 @@ func (c *command) Put(args ...string) error {
 
 func (c *command) Get(args ...string) error {
 	if len(args) != 1 {
-		return errors.New("Arguments number error")
+		return ARGUMENTS_NUM
 	}
 	if !c.listening {
-		return errors.New("No Server Service")
+		return NO_SERVICE
 	}
 
 	response, err := dht.RPCGet(c.node.Address, args[0])
@@ -210,10 +206,10 @@ func (c *command) Get(args ...string) error {
 
 func (c *command) Del(args ...string) error {
 	if len(args) != 1 {
-		return errors.New("Arguments number error")
+		return ARGUMENTS_NUM
 	}
 	if !c.listening {
-		return errors.New("No Server Service")
+		return NO_SERVICE
 	}
 
 	if resp, err := dht.RPCDel(c.node.Address, args[0]); err != nil {
@@ -228,7 +224,7 @@ func (c *command) Del(args ...string) error {
 func (c *command) Help(args ...string) error {
 	var err error
 	if len(args) > 1 {
-		err = errors.New("Too many arguments. Get help from command help")
+		err = TOO_MANY_ARGUMENTS
 	} else {
 		err = nil
 	}
@@ -367,6 +363,8 @@ walk around the ring, dumping all information about every peer in the ring in cl
 		default:
 			fmt.Println("Wrong command, get help from command help")
 		}
+	default:
+		fmt.Println("Wrong command, get help from command help")
 	}
 
 	return err
@@ -376,11 +374,7 @@ walk around the ring, dumping all information about every peer in the ring in cl
 // //switch server and client and some infos
 // //order is like: "test server" or "test client msg"
 // func Test(args ...string) error {
-// 	if len(args) == 0 {
-// 		return errors.New("few arguements")
-// 	}
-// 	if listening {
-// 		return errors.New("already open server service")
+
 // 	}
 
 // 	if args[0] == "server" {
@@ -397,3 +391,59 @@ walk around the ring, dumping all information about every peer in the ring in cl
 
 // 	return nil
 // }
+
+func (c *command) Backup(args ...string) error {
+	if len(args) != 0 {
+		return TOO_MANY_ARGUMENTS
+	}
+	if !c.listening {
+		return NO_SERVICE
+	}
+
+	c.server.Backup()
+	return nil
+}
+func (c *command) Recover(args ...string) error {
+	if len(args) != 0 {
+		return TOO_MANY_ARGUMENTS
+	}
+	if !c.listening {
+		return NO_SERVICE
+	}
+
+	c.server.Recover()
+	return nil
+}
+
+func (c *command) Random(args ...string) error {
+	var x int
+	var err error
+	if len(args) == 0 {
+		x = 1
+	} else if len(args) == 1 {
+
+		if x, err = strconv.Atoi(args[0]); err != nil {
+			return err
+		}
+
+	} else {
+		err = TOO_MANY_ARGUMENTS
+	}
+	for i := 1; i <= x; i++ {
+		k := strconv.FormatInt(rand.Int63(), 10)
+		v := strconv.FormatInt(rand.Int63(), 10)
+
+		if err = c.Put(k, v); err != nil {
+			return err
+		}
+
+	}
+
+	return err
+}
+func (c *command) Remove(args ...string) error {
+	if len(args) >= 1 {
+		return TOO_MANY_ARGUMENTS
+	}
+	return c.server.RemoveFile()
+}

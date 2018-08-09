@@ -137,7 +137,16 @@ func (s *Server) Quit() error {
 	// }
 
 	// fmt.Println("quit hard")
+
+	if err := s.RemoveFile(); err != nil {
+		fmt.Println(err)
+	}
 	return nil
+}
+
+func (s *Server) RemoveFile() error {
+	err := os.Remove("./backup/" + Hash(s.node.Address).String() + ".txt")
+	return err
 }
 
 func (s *Server) IsListening() bool {
@@ -155,4 +164,12 @@ Successors: %v
 Predecessor: %v
 Fingers: %v
 `, Hash(s.node.Address), s.IsListening(), s.node.Address, s.node.Data, s.node.SuccessorTable, s.node.Predecessor, s.node.FingerTable)
+}
+
+func (s *Server) Backup() {
+	s.node.backup()
+}
+
+func (s *Server) Recover() {
+	s.node.recover()
 }

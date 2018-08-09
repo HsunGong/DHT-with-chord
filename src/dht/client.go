@@ -25,7 +25,7 @@ func Call(address string, method string, request interface{}, response interface
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
 		// Logger.Printf("dial failed: %v", err)
-		fmt.Printf("Dial: %v\n", err)
+		// fmt.Printf("Dial: %v\n", err)
 		return err
 	}
 	defer client.Close()
@@ -34,7 +34,7 @@ func Call(address string, method string, request interface{}, response interface
 	err = client.Call(method, request, response)
 	if err != nil {
 		// Logger.Printf("call error: %v", err)
-		fmt.Printf("Call: %v\n", err)
+		// fmt.Printf("Call: %v\n", err)
 		return err
 	}
 
@@ -113,7 +113,7 @@ func RPCPut(address string, key string, val string) error {
 		return err
 	}
 
-	// fmt.Printf("Put %s, %s in [%v]\n", val, key, put_node)
+	fmt.Printf("Put %s, %s in [%v]\n", key, val, put_node)
 	if !response {
 		return errors.New("No put")
 	}
@@ -129,9 +129,8 @@ func RPCGet(address string, key string) (string, error) {
 	if err := Call(get_node, "Node.Get", key, &response); err != nil {
 		return "", err
 	}
-	if response == "" {
-		fmt.Printf("Get [%v] stored %v at %s\n", get_node, response, key)
-	}
+	fmt.Printf("Get [%v] stored %v at %s\n", get_node, response, key)
+
 	return response, nil
 }
 
@@ -146,9 +145,7 @@ func RPCDel(address string, key string) (bool, error) {
 		return false, err
 	}
 
-	if !response {
-		fmt.Printf("Del [%v] KVPair(%v) is %t\n", del_node, key, response)
-	}
+	fmt.Printf("Del [%v] KVPair(%v) is %t\n", del_node, key, response)
 	return response, nil
 }
 

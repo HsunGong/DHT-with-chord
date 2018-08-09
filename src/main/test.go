@@ -9,6 +9,7 @@ import (
 	"io"
 	"math/big"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,9 @@ var (
 func init() {
 
 }
+func main() {
+	main3()
+}
 
 type errType struct {
 	No   int    // order in the loop
@@ -34,21 +38,21 @@ type errType struct {
 
 type sl []*big.Int
 
-// func main() {
-// 	x := make(sl, 30, 30)
-// 	j := 0
-// 	for i := 0; i <= 11; i++ {
-// 		x[j] = dht.Hash("10.163.174.211:800" + strconv.FormatInt(int64(i), 10))
-// 		j++
-// 		fmt.Printf("%d\t%d\n", i, x[j])
-// 		x[j] = dht.Hash(strconv.FormatInt(int64(i), 10))
-// 		fmt.Printf("%d:\t%d\n", i, x[j])
-// 		j++
-// 	}
-// 	// sort.Sort(x)
-// }
+func main1() {
+	x := make(sl, 30, 30)
+	j := 0
+	for i := 0; i <= 11; i++ {
+		x[j] = dht.Hash("10.163.174.211:800" + strconv.FormatInt(int64(i), 10))
+		j++
+		fmt.Printf("%d\t%d\n", i, x[j])
+		x[j] = dht.Hash(strconv.FormatInt(int64(i), 10))
+		fmt.Printf("%d:\t%d\n", i, x[j])
+		j++
+	}
+	// sort.Sort(x)
+}
 
-func main() {
+func main2() {
 	var ports [105]string
 	datas := map[string]string{}
 	var dataString [2005]string
@@ -308,40 +312,94 @@ func getline(reader io.Reader) ([]string, error) {
 	return buffer, nil //delete all ' ' in buffer
 }
 
-// func main() {
+func main3() {
+	green := color.New(color.FgGreen)
+	red := color.New(color.FgRed)
 
-// 	t := time.Now()
-// 	fmt.Printf("@CopyRight(c) 2018 Xun. All rights reserved\n--At %v DHT begins--\n", t.Round(time.Second).Format(layout))
+	t := time.Now()
+	green.Printf("@CopyRight(c) 2018 Xun. All rights reserved\n--At %v DHT begins--\n", t.Round(time.Second).Format(layout))
 
-// 	var Cmd [10]command
-// 	cnt := 0
-// 	port := 8000
-// 	for {
-// 		c := &Cmd[cnt]
+	var Cmd command
+	cnt := 0
+	// rand.Seed(time.Now().Unix())
 
-// 		line, _ := getline(os.Stdin)
+	var err error
+	for {
+		c := &Cmd
 
-// 		if line[0] == "create" {
-// 			c.Create(line[1:]...)
-// 			cnt++
-// 		} else if line[0] == "port" {
-// 			c.Port(strconv.FormatInt(int64(port+cnt), 10))
-// 		} else if line[0] == "dump" {
-// 			Cmd[0].Dump(line[1:]...)
-// 			Cmd[1].Dump(line[1:]...)
-// 		} else if line[0] == "join" {
-// 			c.Join(line[1:]...)
-// 			cnt++
-// 		} else if line[0] == "put" {
-// 			c.Put(line[1:]...)
-// 		} else if line[0] == "get" {
-// 			c.Get(line[1:]...)
-// 			var s string
-// 			fmt.Fscanln(&buffer, s)
-// 			fmt.Println(s)
-// 		} else if line[0] == "del" {
-// 			c.Del(line[1:]...)
-// 		}
+		line, _ := getline(os.Stdin)
 
-// 	}
+		if line[0] == "create" {
+			err = c.Create(line[1:]...)
+			cnt++
+		} else if line[0] == "port" {
+			port := rand.Int31()%50 + 8000
+			if len(line) == 1 {
+				err = c.Port(strconv.FormatInt(int64(port), 10))
+			} else {
+				err = c.Port(line[1:]...)
+			}
+		} else if line[0] == "quit" {
+			err = c.Quit(line[1:]...)
+			os.Exit(1)
+		} else if line[0] == "join" {
+			err = c.Join(line[1:]...)
+			cnt++
+		} else if line[0] == "put" {
+			err = c.Put(line[1:]...)
+		} else if line[0] == "get" {
+			err = c.Get(line[1:]...)
+		} else if line[0] == "del" {
+			err = c.Del(line[1:]...)
+		} else if line[0] == "backup" {
+			err = c.Backup(line[1:]...)
+		} else if line[0] == "recover" {
+			err = c.Recover(line[1:]...)
+		} else if line[0] == "dump" {
+			err = c.Dump(line[1:]...)
+		} else if line[0] == "putrandom" {
+			c.Random(line[1:]...)
+		} else if line[0] == "remove" { //|| line[0] == "clear" {
+			c.Remove(line[1:]...)
+		} else {
+			if line[0] == "help" {
+				err = c.Help(line[1:]...)
+			} else {
+				err = c.Help(line[0:]...)
+			}
+		}
+
+		if err != nil {
+			red.Println(err)
+		}
+		if s, e := buffer.ReadString('\n'); e == nil {
+			green.Print(s)
+		}
+	}
+}
+
+//func(args...string) error is the cmd funcs return by error
+//can't define as const
+
+// type cmd_function interface {
+// 	Quit(args ...string) error
+// 	Help(args ...string) error
+
+// 	Port(args ...string) error
+// 	Create(args ...string) error
+// 	Join(args ...string) error
+// 	Put(args ...string) error
+// 	Get(args ...string) error
+// 	Del(args ...string) error
+
+// 	Ping(args ...string) error
+// 	Dump(args ...string) error
 // }
+
+// var (
+// 	Cquit cmd_function
+// )
+
+// struct cmd:::
+
+//operator domains

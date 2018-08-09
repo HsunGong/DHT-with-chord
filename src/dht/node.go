@@ -1,10 +1,12 @@
 package dht
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"math/big"
+	"os"
 	"time"
 )
 
@@ -31,10 +33,15 @@ type Node struct {
 
 	Listening bool
 	debug     bool // if true, is debugging
+	// file      *os.File
 }
 
 type KVP struct {
 	K, V string //key, value
+}
+
+func init() {
+	os.MkdirAll("backup", os.ModeType)
 }
 
 func NewNode(_port string, _debug bool) *Node {
@@ -50,6 +57,7 @@ func NewNode(_port string, _debug bool) *Node {
 		// FingerTable: make([]string, 0, m),
 		next: -1,
 	}
+
 	return p
 }
 
@@ -60,11 +68,13 @@ func (n *Node) create() {
 	for i, _ := range n.SuccessorTable {
 		n.SuccessorTable[i] = n.Address
 	}
+	n.recover()
 
 	go n.checkSurvival()
 	go n.checkPredecessorPeriod()
 	go n.stabilizePeriod()
 	go n.fixFingerTablePeriod()
+	go n.backupPeriod()
 }
 
 func (n *Node) Besplited(address string, response *bool) error {
@@ -390,6 +400,7 @@ func (n *Node) fixFingerTablePeriod() {
 func (n *Node) Put(args KVP, success *bool) error {
 	// fmt.Println("Put ", n.Address, args.K, args.V)
 	n.Data[args.K] = args.V
+	// fmt.Println(n.Data)
 	*success = true
 	return nil
 }
@@ -424,4 +435,70 @@ Next: %v	Predecessor: %v
 Data: %v
 Finger: %v
 `, Hash(node.Address), node.Address, node.successor, node.SuccessorTable, node.next, node.Predecessor, node.Data, node.FingerTable[:60])
+}
+
+func (n *Node) backup() {
+	file, err := os.OpenFile("./backup/"+Hash(n.Address).String()+".txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+	b := bufio.NewWriter(file)
+
+	if _, err := RPCPing(n.Predecessor); n.Predecessor != n.Address && err == nil {
+		var response bool
+		// fmt.Println("split backup")
+		if err = n.Besplited(n.Predecessor, &response); err != nil {
+			fmt.Printf("Backup split:%v\n", err)
+		}
+	}
+
+	for k, v := range n.Data {
+		// fmt.Println("backup", k, v)
+		fmt.Fprintln(b, k, v)
+		// fmt.Println(a, p)
+		b.Flush()
+	}
+}
+
+func (n *Node) backupPeriod() {
+	ticker := time.Tick(refreshTime * 5)
+	for {
+		select {
+		case <-ticker:
+			n.backup()
+		}
+	}
+}
+
+func (n *Node) recover() {
+	file, err := os.OpenFile("./backup/"+Hash(n.Address).String()+".txt", os.O_CREATE|os.O_RDONLY, os.ModePerm)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer file.Close()
+
+	// fmt.Println("safiwefsadjkvnsadsd")
+	scanner := bufio.NewScanner(file)
+	scanner.Split(bufio.ScanWords)
+	for {
+		if scanner.Scan() {
+			var k, v string
+			k = scanner.Text()
+			if scanner.Scan() {
+				v = scanner.Text()
+			} else {
+				break
+			}
+
+			n.Data[k] = v
+		} else {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Printf("reading input: %v\n", err)
+	}
 }
